@@ -8,7 +8,7 @@ abstract class LPSolution {
 
     abstract fun objective_value(): Double
 
-    abstract fun value_of(name: String): Double?
+    abstract fun value_of(name: LPName): Double?
 
     fun value_of(v: LPVariable): Double? = value_of(v.name)
 }

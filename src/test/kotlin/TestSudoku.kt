@@ -4,14 +4,15 @@ import kulp.*
 import kulp.adapters.ORToolsAdapter
 import kulp.constraints.LP_EQ
 import kulp.variables.LPBinary
+import kulp.variables.LPVariable
 import mdspan.*
 import org.junit.jupiter.api.Test
 
 private object SudokuProblem : LPProblem() {
 
-    val variables =
+    val variables: Map<LPName, LPVariable> =
         ndindex(9, 9, 9).associate {
-            val name = "z_(${it[1]},${it[2]})_is_${it[0] + 1}"
+            val name = "z".lpn.refine(it[0], it[1], it[2])
             name to LPBinary(name)
         }
 
@@ -60,40 +61,40 @@ private object SudokuProblem : LPProblem() {
         // exclusivity constraint
         for ((row, col) in ndindex(9, 9)) {
             val slice = span[ALL, IX(row), IX(col)]
-            renderables.add(LP_EQ("exactly_one_at_${row},${col}", slice.lp_sum(), 1))
+            renderables.add(LP_EQ("exactly_one_at".lpn.refine(row, col), slice.lp_sum(), 1))
         }
         // one per col
         for ((col, digit) in ndindex(9, 9)) {
             val slice = span[IX(digit), ALL, IX(digit)]
-            renderables.add(LP_EQ("one_${digit + 1}_per_col_${col}", slice.lp_sum(), 1))
+            renderables.add(LP_EQ("one_per_col".lpn.refine(digit, col), slice.lp_sum(), 1))
         }
         // one per row
         for ((row, digit) in ndindex(9, 9)) {
             val slice = span[IX(digit), IX(row), ALL]
-            renderables.add(LP_EQ("one_${digit + 1}_per_row_${row}", slice.lp_sum(), 1))
+            renderables.add(LP_EQ("one_per_row".lpn.refine(digit, row), slice.lp_sum(), 1))
         }
         // one per box
         for ((box, digit) in ndindex(9, 9)) {
             val start_row = 3 * (box / 3)
             val start_col = 3 * (box % 3)
             val slice = span[IX(digit), SL(start_row, start_row + 3), SL(start_col, start_col + 3)]
-            renderables.add(LP_EQ("one_${digit + 1}+per_box_${box}", slice.lp_sum(), 1))
+            renderables.add(LP_EQ("one_per_box".lpn.refine(digit, box), slice.lp_sum(), 1))
         }
 
         for ((digit, row, col) in initial_list) {
-            renderables.add(LP_EQ("initial_${digit}_at_${row},${col}", span[digit - 1, row - 1, col - 1], 1))
+            renderables.add(LP_EQ("initial".lpn.refine(digit, row, col), span[digit - 1, row - 1, col - 1], 1))
         }
 
         renderables.addAll(variables.values)
         return renderables
     }
 
-    override val name: String = "SudokuProblem"
+    override val name: LPName = "SudokuProblem".lpn
 }
 
 class TestSudoku {
     @Test
-    fun testWhiskas() {
+    fun testSudoku() {
         // solve the whiskas problem with or-tools
         val ctx = MipContext(1000.0)
         Loader.loadNativeLibraries()

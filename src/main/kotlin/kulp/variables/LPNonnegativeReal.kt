@@ -1,13 +1,12 @@
 package kulp.variables
 
+import kulp.LPName
 import kulp.constraints.LPConstraint
-import kulp.constraints.LPLEQ
+import kulp.constraints.LP_LEQ
 
-class LPNonnegativeReal(name: String): LPReal(name) {
+class LPNonnegativeReal(name: LPName): LPReal(name) {
 
     override fun intrinsic_constraints(): List<LPConstraint> = listOf(
-        LPLEQ(
-            "${intrinsic_prefix()}_lb", 0, this.as_expr()
-        ),
+        LP_LEQ(name.refine("lb"), 0, this.as_expr())
     )
 }

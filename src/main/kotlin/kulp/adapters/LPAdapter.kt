@@ -27,6 +27,7 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
     context(Solver)
     fun init() {
         val primtives = problem.render(ctx)
+        val already_consumed = mutableSetOf<LPName>()
 
         // first, consume all variables
         val variables = primtives.filterIsInstance<LPVariable>()
@@ -34,7 +35,10 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
             if (!variable.is_primitive(ctx)) {
                 throw Exception("Non-primitive variable $variable found in problem render. Bug!")
             }
-            consume_variable(variable)
+            if (variable.name !in already_consumed) {
+                consume_variable(variable)
+                already_consumed.add(variable.name)
+            }
         }
 
         // then, consume all constraints
@@ -43,7 +47,10 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
             if (!constraint.is_primitive(ctx)) {
                 throw Exception("Non-primitive constraint $constraint found in problem render. Bug!")
             }
-            consume_constraint(constraint)
+            if (constraint.name !in already_consumed) {
+                consume_constraint(constraint)
+                already_consumed.add(constraint.name)
+            }
         }
 
         val (obj, sense) = problem.get_objective()

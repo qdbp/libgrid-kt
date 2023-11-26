@@ -1,10 +1,10 @@
 package kulp.variables
 
 import kulp.*
-import kulp.constraints.LPLEQ
+import kulp.constraints.LP_LEQ
 import kulp.constraints.LPConstraint
 
-abstract class LPVariable(override val name: String, val domain: LPDomain) : LPRenderable, LPExprLike {
+abstract class LPVariable(override val name: LPName, val domain: LPDomain) : LPRenderable, LPExprLike {
 
     final override fun is_primitive(ctx: MipContext): Boolean = true
     abstract fun intrinsic_constraints(): List<LPConstraint>
@@ -12,14 +12,14 @@ abstract class LPVariable(override val name: String, val domain: LPDomain) : LPR
     /**
      * Convenience method for giving names to intrinsic constraints.
      */
-    protected fun intrinsic_prefix(): String {
-        return "${name}_${this.javaClass.kotlin}_intrinsic"
+    protected fun intrinsic_prefix(): LPName {
+        return name.refine("${javaClass.simpleName}_intrinsic")
     }
 
     final override fun render(ctx: MipContext): List<LPRenderable> {
-        val le_bigm = LPLEQ("${name}_le_bigm", this, ctx.bigM - 1)
-        val ge_neg_bigm = LPLEQ("${name}_le_bigm", -ctx.bigM + 1, this)
-        return intrinsic_constraints() + listOf(le_bigm, ge_neg_bigm)
+        val le_bigm = LP_LEQ(name.refine("le_bigm"), this, ctx.bigM - 1)
+        val ge_neg_bigm = LP_LEQ(name.refine("ge_bigm"), -ctx.bigM + 1, this)
+        return intrinsic_constraints() + listOf(le_bigm, ge_neg_bigm, this)
     }
 
     override fun as_expr(): LPAffineExpression = LPAffineExpression(
@@ -27,7 +27,7 @@ abstract class LPVariable(override val name: String, val domain: LPDomain) : LPR
         0.0
     )
 
-    fun copy_as(name: String): LPVariable = when (this) {
+    fun copy_as(name: LPName): LPVariable = when (this) {
         is LPReal -> LPReal(name)
         is LPInteger -> LPInteger(name)
         is LPNonnegativeInteger -> LPNonnegativeInteger(name)
@@ -68,6 +68,10 @@ abstract class LPVariable(override val name: String, val domain: LPDomain) : LPR
             mapOf(this to -1.0),
             0.0
         )
+    }
+
+    override fun toString(): String {
+        return "${javaClass.simpleName}[${name}]"
     }
 }
 

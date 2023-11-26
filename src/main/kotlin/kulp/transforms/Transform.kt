@@ -3,10 +3,15 @@ package kulp.transforms
 import kulp.LPExprLike
 import kulp.LPRenderable
 
-abstract class Transform : LPRenderable, LPExprLike {
+// TODO these don't strictly need to be "renderable", but they must be breakable into
+//  renderables
+/**
+ * Class representing transformations of individual or groups of variables.
+ */
+abstract class Transform : LPExprLike, LPRenderable {
 
-    /**
-     * Returns the final output of the transformation as an AffineExpression.
-     */
+    protected fun transform_identifier(): String {
+        return "transform_${javaClass.simpleName}"
+    }
 
 }

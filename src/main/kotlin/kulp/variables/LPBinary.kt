@@ -1,18 +1,15 @@
 package kulp.variables
 
 import kulp.LPDomain
+import kulp.LPName
 import kulp.constraints.LPConstraint
-import kulp.constraints.LPLEQ
+import kulp.constraints.LP_LEQ
 
-class LPBinary(name: String) : LPVariable(name, LPDomain.Integral) {
+class LPBinary(name: LPName) : LPVariable(name, LPDomain.Integral) {
     override fun intrinsic_constraints(): List<LPConstraint> {
         return listOf(
-            LPLEQ(
-                "${intrinsic_prefix()}_lb", 0, this.as_expr()
-            ),
-            LPLEQ(
-                "${intrinsic_prefix()}_ub", this.as_expr(), 1
-            ),
+            LP_LEQ(name.refine("lb"), 0, this.as_expr()),
+            LP_LEQ(name.refine("ub"), this.as_expr(), 1),
         )
     }
 

@@ -7,7 +7,7 @@ import com.google.ortools.linearsolver.MPSolver.ResultStatus
 import com.google.ortools.linearsolver.MPVariable
 import kulp.*
 import kulp.constraints.LPConstraint
-import kulp.constraints.LPLEQ
+import kulp.constraints.LP_LEQ
 import kulp.variables.*
 
 private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
@@ -18,7 +18,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
 
     class ORToolsSolution(
         private val objective_value: Double?,
-        private val solved_value_map: Map<String, Double>,
+        private val solved_value_map: Map<LPName, Double>,
         private val ortools_status: ResultStatus
     ) : LPSolution() {
         override fun status(): LPSolutionStatus {
@@ -38,7 +38,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 ?: throw Exception("Objective value not available. Check status first!")
         }
 
-        override fun value_of(name: String): Double? {
+        override fun value_of(name: LPName): Double? {
             return solved_value_map[name]
         }
 
@@ -47,8 +47,8 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         }
     }
 
-    private val known_variables = mutableMapOf<String, Pair<MPVariable, LPVariable>>()
-    private val known_constraints = mutableMapOf<String, Pair<MPConstraint, LPConstraint>>()
+    private val known_variables = mutableMapOf<LPName, Pair<MPVariable, LPVariable>>()
+    private val known_constraints = mutableMapOf<LPName, Pair<MPConstraint, LPConstraint>>()
     private var objective: MPObjective? = null
 
     context(MPSolver)
@@ -59,21 +59,22 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         if (variable.name in known_variables) {
             return
         }
+        val ortools_name = variable.name.render()
         val ortools_var =
             when (variable) {
                 // note: we skip intrinsic constraints for these types because we can express them
-                is LPReal -> makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), variable.name)
-                is LPInteger -> makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), variable.name)
-                is LPNonnegativeInteger -> makeIntVar(0.0, MPSolver.infinity(), variable.name)
-                is LPBinary -> makeIntVar(0.0, 1.0, variable.name)
+                is LPReal -> makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
+                is LPInteger -> makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
+                is LPNonnegativeInteger -> makeIntVar(0.0, MPSolver.infinity(), ortools_name)
+                is LPBinary -> makeIntVar(0.0, 1.0, ortools_name)
                 // for anything else we make a "generic" variable and trust that the intrinsics
                 // have been added during the rendering pass!
                 else ->
                     when (variable.domain) {
                         LPDomain.Real ->
-                            makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), variable.name)
+                            makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                         LPDomain.Integral ->
-                            makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), variable.name)
+                            makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                     }
             }
         known_variables[variable.name] = Pair(ortools_var, variable)
@@ -84,10 +85,11 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         if (constraint.name in known_constraints) {
             return
         }
+        val ortools_name = constraint.name.render()
         val ortools_constraint =
             when (constraint) {
-                is LPLEQ -> {
-                    makeConstraint(MPSolver.infinity(), MPSolver.infinity(), constraint.name)
+                is LP_LEQ -> {
+                    makeConstraint(MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                         .apply {
                             for ((variable, coef) in constraint.std_lhs.terms) {
                                 known_variables[variable.name]?.let {
