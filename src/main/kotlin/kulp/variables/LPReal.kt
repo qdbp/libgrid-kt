@@ -1,9 +1,9 @@
 package kulp.variables
 
 import kulp.LPDomain
-import kulp.LPName
+import model.SegName
 import kulp.constraints.LPConstraint
 
-open class LPReal(name: LPName) : LPVariable(name, LPDomain.Real) {
+open class LPReal(name: SegName) : LPVariable(name, LPDomain.Real) {
     override fun intrinsic_constraints(): List<LPConstraint> = listOf()
 }

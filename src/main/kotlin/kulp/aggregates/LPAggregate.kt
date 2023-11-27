@@ -1,11 +1,11 @@
 package kulp.aggregates
 
-import kulp.LPName
+import model.SegName
 import kulp.LPRenderable
 import kulp.MipContext
-import mdspan.MDSpan
+import mdspan.NDSpan
 
-abstract class  LPAggregate<T: LPRenderable>(override val name: LPName, vars: List<T>, shape: List<Int>): MDSpan<T>(vars, shape), LPRenderable {
+abstract class  LPAggregate<T: LPRenderable>(override val name: SegName, vars: List<T>, shape: List<Int>): NDSpan<T>(vars, shape), LPRenderable {
 
     final override fun is_primitive(ctx: MipContext): Boolean = false
 

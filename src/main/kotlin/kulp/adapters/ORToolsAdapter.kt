@@ -9,6 +9,7 @@ import kulp.*
 import kulp.constraints.LPConstraint
 import kulp.constraints.LP_LEQ
 import kulp.variables.*
+import model.SegName
 
 private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
 
@@ -18,7 +19,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
 
     class ORToolsSolution(
         private val objective_value: Double?,
-        private val solved_value_map: Map<LPName, Double>,
+        private val solved_value_map: Map<SegName, Double>,
         private val ortools_status: ResultStatus
     ) : LPSolution() {
         override fun status(): LPSolutionStatus {
@@ -38,7 +39,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 ?: throw Exception("Objective value not available. Check status first!")
         }
 
-        override fun value_of(name: LPName): Double? {
+        override fun value_of(name: SegName): Double? {
             return solved_value_map[name]
         }
 
@@ -47,8 +48,8 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         }
     }
 
-    private val known_variables = mutableMapOf<LPName, Pair<MPVariable, LPVariable>>()
-    private val known_constraints = mutableMapOf<LPName, Pair<MPConstraint, LPConstraint>>()
+    private val known_variables = mutableMapOf<SegName, Pair<MPVariable, LPVariable>>()
+    private val known_constraints = mutableMapOf<SegName, Pair<MPConstraint, LPConstraint>>()
     private var objective: MPObjective? = null
 
     context(MPSolver)
@@ -64,9 +65,9 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
             when (variable) {
                 // note: we skip intrinsic constraints for these types because we can express them
                 is LPReal -> makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                is LPInteger -> makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                is LPNonnegativeInteger -> makeIntVar(0.0, MPSolver.infinity(), ortools_name)
                 is LPBinary -> makeIntVar(0.0, 1.0, ortools_name)
+                is LPNonnegativeInteger -> makeIntVar(0.0, MPSolver.infinity(), ortools_name)
+                is LPInteger -> makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                 // for anything else we make a "generic" variable and trust that the intrinsics
                 // have been added during the rendering pass!
                 else ->
@@ -92,11 +93,11 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                     makeConstraint(MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                         .apply {
                             for ((variable, coef) in constraint.std_lhs.terms) {
-                                known_variables[variable.name]?.let {
+                                known_variables[variable]?.let {
                                     setCoefficient(it.first, coef)
                                 }
                                     ?: logger.warn {
-                                        "Unknown variable ${variable.name} in constraint. Bug?? Skipping."
+                                        "Unknown variable ${variable} in constraint. Bug?? Skipping."
                                     }
                             }
                             setBounds(-MPSolver.infinity(), -constraint.std_lhs.constant)
@@ -114,9 +115,9 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
     override fun consume_objective(objective: LPAffineExpression, sense: LPObjectiveSense) {
         val ortools_objective = objective()
         for (term in objective.terms.entries) {
-            known_variables[term.key.name]?.let {
+            known_variables[term.key]?.let {
                 ortools_objective.setCoefficient(it.first, term.value)
-            } ?: logger.warn { "Unknown variable ${term.key.name} in objective. Bug?? Skipping." }
+            } ?: logger.warn { "Unknown variable ${term.key} in objective. Bug?? Skipping." }
         }
         when (sense) {
             LPObjectiveSense.Minimize -> ortools_objective.setMinimization()

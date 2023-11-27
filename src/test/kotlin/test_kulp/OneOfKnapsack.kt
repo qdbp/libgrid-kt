@@ -1,9 +1,13 @@
+package test_kulp
+
 import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver
 import kulp.*
 import kulp.adapters.ORToolsAdapter
 import kulp.aggregates.LPOneOfN
 import kulp.constraints.LP_LEQ
+import model.SegName
+import model.sn
 import kotlin.test.Test
 
 /**
@@ -13,7 +17,7 @@ import kotlin.test.Test
  * This tests `LPOneOfN`
  */
 private object OneOfKnapsackProblem : LPProblem() {
-    override val name: LPName = "OneOfKnapsackProblem".lpn
+    override val name: SegName = "OneOfKnapsackProblem".sn
 
     const val weight_limit: Double = 100.0
     const val num_slots = 5
@@ -25,7 +29,7 @@ private object OneOfKnapsackProblem : LPProblem() {
     val item_weights = List(num_slots) { List(choices_per_slot) {(0..100).random()} + listOf(0) }
 
     val item_selectors = List(num_slots) {
-        LPOneOfN("selector".lpn.refine(it), choices_per_slot + 1)
+        LPOneOfN("selector".sn.refine(it), choices_per_slot + 1)
     }
 
     val chosen_weights = item_selectors.zip(item_values).map { pair -> pair.first.lp_dot(pair.second) }
@@ -37,7 +41,7 @@ private object OneOfKnapsackProblem : LPProblem() {
 
     override fun get_renderables(): List<LPRenderable> {
         return item_selectors + listOf(
-            LP_LEQ("weight_limit".lpn, chosen_weights.lp_sum(), weight_limit),
+            LP_LEQ("weight_limit".sn, chosen_weights.lp_sum(), weight_limit),
         )
     }
 

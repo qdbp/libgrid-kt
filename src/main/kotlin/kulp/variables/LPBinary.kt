@@ -1,16 +1,45 @@
 package kulp.variables
 
-import kulp.LPDomain
-import kulp.LPName
-import kulp.constraints.LPConstraint
-import kulp.constraints.LP_LEQ
+import kulp.LPAffineExpression
+import model.SegName
 
-class LPBinary(name: LPName) : LPVariable(name, LPDomain.Integral) {
-    override fun intrinsic_constraints(): List<LPConstraint> {
-        return listOf(
-            LP_LEQ(name.refine("lb"), 0, this.as_expr()),
-            LP_LEQ(name.refine("ub"), this.as_expr(), 1),
+class LPBinary(name: SegName) : LPInteger(name, LPIntBound(0), LPIntBound(1)) {
+    operator fun not(): LPAffineExpression {
+        return LPAffineExpression(
+            mapOf(
+                this.name to -1.0,
+            ),
+            1.0
         )
     }
 
+    fun and(other: LPBinary): LPAffineExpression {
+        return LPAffineExpression(
+            mapOf(
+                this.name to 1.0,
+                other.name to 1.0,
+            ),
+            -1.0
+        )
+    }
+
+    fun or(other: LPBinary): LPAffineExpression {
+        return LPAffineExpression(
+            mapOf(
+                this.name to 1.0,
+                other.name to 1.0,
+            ),
+            0.0
+        )
+    }
+
+    fun implies(other: LPBinary): LPAffineExpression {
+        return LPAffineExpression(
+            mapOf(
+                this.name to -1.0,
+                other.name to 1.0,
+            ),
+            0.0
+        )
+    }
 }

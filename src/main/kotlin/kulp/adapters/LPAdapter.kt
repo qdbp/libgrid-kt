@@ -3,6 +3,7 @@ package kulp.adapters
 import kulp.*
 import kulp.constraints.LPConstraint
 import kulp.variables.LPVariable
+import model.SegName
 
 /**
  * Base class for adapters that map our LPProblem to a concrete third-party backend.
@@ -27,7 +28,7 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
     context(Solver)
     fun init() {
         val primtives = problem.render(ctx)
-        val already_consumed = mutableSetOf<LPName>()
+        val already_consumed = mutableSetOf<SegName>()
 
         // first, consume all variables
         val variables = primtives.filterIsInstance<LPVariable>()

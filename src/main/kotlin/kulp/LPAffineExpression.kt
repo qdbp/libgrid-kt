@@ -1,6 +1,6 @@
 package kulp
 
-import kulp.variables.LPVariable
+import model.SegName
 
 
 /**
@@ -10,7 +10,7 @@ import kulp.variables.LPVariable
  *
  */
 data class LPAffineExpression(
-    val terms: Map<LPVariable, Double>,
+    val terms: Map<SegName, Double>,
     val constant: Double
 ): LPExprLike {
 
@@ -33,14 +33,15 @@ data class LPAffineExpression(
         )
     }
 
-    operator fun plus(other: LPAffineExpression): LPAffineExpression {
+    operator fun plus(other: LPExprLike): LPAffineExpression {
         val new_terms = terms.toMutableMap()
-        for ((k, v) in other.terms) {
+        val other_expr = other.as_expr()
+        for ((k, v) in other_expr.terms) {
             new_terms[k] = (new_terms[k] ?: 0.0) + v
         }
         return LPAffineExpression(
             new_terms,
-            constant + other.constant
+            constant + other_expr.constant
         )
     }
 
@@ -48,8 +49,8 @@ data class LPAffineExpression(
         return this + (-other.toDouble())
     }
 
-    operator fun minus(other: LPAffineExpression): LPAffineExpression {
-        return this + (-other)
+    operator fun minus(other: LPExprLike): LPAffineExpression {
+        return this + (-other.as_expr())
     }
 
     operator fun times(other: Number): LPAffineExpression {

@@ -1,7 +1,7 @@
 package kulp.transforms
 
 import kulp.LPAffineExpression
-import kulp.LPName
+import model.SegName
 import kulp.LPRenderable
 import kulp.MipContext
 import kulp.constraints.LP_EQ
@@ -14,7 +14,7 @@ class Abs(private val x: LPVariable) : Transform() {
 
   // we can build our auxiliaries statically
   private var auxiliaries: MutableList<LPVariable> = mutableListOf()
-  override val name: LPName = x.name.refine(transform_identifier())
+  override val name: SegName = x.name.refine(transform_identifier())
 
   private val x_p = x.copy_as(name.refine("p"))
   private val x_m = x.copy_as(name.refine("m"))

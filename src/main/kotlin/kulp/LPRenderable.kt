@@ -1,5 +1,7 @@
 package kulp
 
+import model.SegName
+
 /**
  * A renderable is an entity (in practise, a variable or constraint) that ultimately has a
  * representation in the language of a MIP solver. Note, that this representation may be compound
@@ -12,7 +14,7 @@ package kulp
  * the language of the solver.
  */
 interface LPRenderable {
-    val name: LPName
+    val name: SegName
 
     /**
      * Returns true if this renderable is primitive (i.e. will be handled directly by adapters).

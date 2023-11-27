@@ -1,3 +1,5 @@
+package test_kulp
+
 import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver
 import kotlin.test.assertEquals
@@ -8,13 +10,14 @@ import kulp.constraints.LP_EQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPNonnegativeReal
 import kulp.variables.LPVariable
+import model.sn
 import org.junit.jupiter.api.Test
 
 // implementing the example from pulp at
 // https://coin-or.github.io/pulp/CaseStudies/a_blending_problem.html
 private object WhiskasProblem : LPProblem() {
 
-    override val name = "WhiskasProblem".lpn
+    override val name = "WhiskasProblem".sn
 
     // map of nutrient to (map of food to amount of nutrient per 1g)
     private val nutritional_provision =
@@ -56,8 +59,8 @@ private object WhiskasProblem : LPProblem() {
                         "gel" to 0.000
                     )
             )
-            .mapKeys { it.key.lpn }
-            .mapValues { it.value.mapKeys { it.key.lpn } }
+            .mapKeys { it.key.sn }
+            .mapValues { it.value.mapKeys { it.key.sn } }
 
     private val prices =
         mapOf(
@@ -68,10 +71,10 @@ private object WhiskasProblem : LPProblem() {
                 "wheat" to 0.005,
                 "gel" to 0.001
             )
-            .mapKeys { it.key.lpn }
+            .mapKeys { it.key.sn }
 
-    private val max_nutrients = mapOf("fibre".lpn to 2.00, "salt".lpn to 0.40)
-    private val min_nutrients = mapOf("protein".lpn to 8.00, "fat".lpn to 6.00)
+    private val max_nutrients = mapOf("fibre".sn to 2.00, "salt".sn to 0.40)
+    private val min_nutrients = mapOf("protein".sn to 8.00, "fat".sn to 6.00)
 
     override fun get_objective(): Pair<LPExprLike, LPObjectiveSense> {
         val variables = whiskas_variables()
@@ -86,10 +89,10 @@ private object WhiskasProblem : LPProblem() {
         renderables.addAll(variables)
 
         // total weight sums to 100g
-        renderables.add(LP_EQ("sums_to_1".lpn, variables.lp_sum(), 100.0))
+        renderables.add(LP_EQ("sums_to_1".sn, variables.lp_sum(), 100.0))
 
         // for each of the nutrients, the total amount of that nutrient provided by the food
-        for (nutrient in listOf("protein", "fat", "fibre", "salt").map { it.lpn }) {
+        for (nutrient in listOf("protein", "fat", "fibre", "salt").map { it.sn }) {
             val nutrient_map = nutritional_provision[nutrient]!!
             val total_nutrient = variables.associateWith { nutrient_map[it.name]!! }.lp_dot()
             renderables.add(
@@ -113,12 +116,12 @@ private object WhiskasProblem : LPProblem() {
 
     fun whiskas_variables(): List<LPVariable> {
         return listOf(
-            LPNonnegativeReal("chicken".lpn),
-            LPNonnegativeReal("beef".lpn),
-            LPNonnegativeReal("mutton".lpn),
-            LPNonnegativeReal("rice".lpn),
-            LPNonnegativeReal("wheat".lpn),
-            LPNonnegativeReal("gel".lpn)
+            LPNonnegativeReal("chicken".sn),
+            LPNonnegativeReal("beef".sn),
+            LPNonnegativeReal("mutton".sn),
+            LPNonnegativeReal("rice".sn),
+            LPNonnegativeReal("wheat".sn),
+            LPNonnegativeReal("gel".sn)
         )
     }
 }
@@ -146,7 +149,7 @@ internal class TestWhiskas {
                 "wheat" to 0.0,
                 "gel" to 40.0
             )) {
-            val value = solution.value_of(ingredient.lpn)
+            val value = solution.value_of(ingredient.sn)
             assertNotNull(value)
             assertEquals(value, wanted, 1e-6)
         }

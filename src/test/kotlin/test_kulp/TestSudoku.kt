@@ -1,3 +1,5 @@
+package test_kulp
+
 import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver
 import kulp.*
@@ -6,13 +8,15 @@ import kulp.constraints.LP_EQ
 import kulp.variables.LPBinary
 import kulp.variables.LPVariable
 import mdspan.*
+import model.SegName
+import model.sn
 import org.junit.jupiter.api.Test
 
 private object SudokuProblem : LPProblem() {
 
-    val variables: Map<LPName, LPVariable> =
+    val variables: Map<SegName, LPVariable> =
         ndindex(9, 9, 9).associate {
-            val name = "z".lpn.refine(it[0], it[1], it[2])
+            val name = "z".sn.refine(it[0], it[1], it[2])
             name to LPBinary(name)
         }
 
@@ -60,36 +64,40 @@ private object SudokuProblem : LPProblem() {
 
         // exclusivity constraint
         for ((row, col) in ndindex(9, 9)) {
-            val slice = span[ALL, IX(row), IX(col)]
-            renderables.add(LP_EQ("exactly_one_at".lpn.refine(row, col), slice.lp_sum(), 1))
+            val slice = span.slice(ALL, IDX(row), IDX(col))
+            renderables.add(LP_EQ("exactly_one_at".sn.refine(row, col), slice.lp_sum(), 1))
         }
         // one per col
         for ((col, digit) in ndindex(9, 9)) {
-            val slice = span[IX(digit), ALL, IX(digit)]
-            renderables.add(LP_EQ("one_per_col".lpn.refine(digit, col), slice.lp_sum(), 1))
+            val slice = span.slice(IDX(digit), ALL, IDX(digit))
+            renderables.add(LP_EQ("one_per_col".sn.refine(digit, col), slice.lp_sum(), 1))
         }
         // one per row
         for ((row, digit) in ndindex(9, 9)) {
-            val slice = span[IX(digit), IX(row), ALL]
-            renderables.add(LP_EQ("one_per_row".lpn.refine(digit, row), slice.lp_sum(), 1))
+            val slice = span.slice(IDX(digit), IDX(row), ALL)
+            renderables.add(LP_EQ("one_per_row".sn.refine(digit, row), slice.lp_sum(), 1))
         }
         // one per box
         for ((box, digit) in ndindex(9, 9)) {
             val start_row = 3 * (box / 3)
             val start_col = 3 * (box % 3)
-            val slice = span[IX(digit), SL(start_row, start_row + 3), SL(start_col, start_col + 3)]
-            renderables.add(LP_EQ("one_per_box".lpn.refine(digit, box), slice.lp_sum(), 1))
+            val slice = span.slice(
+                IDX(digit),
+                SLC(start_row, start_row + 3),
+                SLC(start_col, start_col + 3)
+            )
+            renderables.add(LP_EQ("one_per_box".sn.refine(digit, box), slice.lp_sum(), 1))
         }
 
         for ((digit, row, col) in initial_list) {
-            renderables.add(LP_EQ("initial".lpn.refine(digit, row, col), span[digit - 1, row - 1, col - 1], 1))
+            renderables.add(LP_EQ("initial".sn.refine(digit, row, col), span[digit - 1, row - 1, col - 1], 1))
         }
 
         renderables.addAll(variables.values)
         return renderables
     }
 
-    override val name: LPName = "SudokuProblem".lpn
+    override val name: SegName = "SudokuProblem".sn
 }
 
 class TestSudoku {

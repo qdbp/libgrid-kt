@@ -1,17 +1,18 @@
 package kulp.constraints
 
 import kulp.*
+import model.SegName
 
-class LP_EQ(override val name: LPName, lhs: LPExprLike, rhs: LPExprLike) : LPConstraint() {
+class LP_EQ(override val name: SegName, lhs: LPExprLike, rhs: LPExprLike) : LPConstraint() {
 
     constructor(
-        name: LPName,
+        name: SegName,
         lhs: Number,
         rhs: LPExprLike
     ) : this(name, LPAffineExpression(lhs), rhs)
 
     constructor(
-        name: LPName,
+        name: SegName,
         lhs: LPExprLike,
         rhs: Number
     ) : this(name, lhs, LPAffineExpression(rhs))

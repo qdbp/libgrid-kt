@@ -1,18 +1,19 @@
 package kulp.variables
 
 import kulp.*
-import kulp.constraints.LP_LEQ
 import kulp.constraints.LPConstraint
+import kulp.constraints.LP_LEQ
+import model.SegName
 
-abstract class LPVariable(override val name: LPName, val domain: LPDomain) : LPRenderable, LPExprLike {
+abstract class LPVariable(override val name: SegName, val domain: LPDomain) :
+    LPRenderable, LPExprLike {
 
     final override fun is_primitive(ctx: MipContext): Boolean = true
+
     abstract fun intrinsic_constraints(): List<LPConstraint>
 
-    /**
-     * Convenience method for giving names to intrinsic constraints.
-     */
-    protected fun intrinsic_prefix(): LPName {
+    /** Convenience method for giving names to intrinsic constraints. */
+    protected fun intrinsic_prefix(): SegName {
         return name.refine("${javaClass.simpleName}_intrinsic")
     }
 
@@ -22,56 +23,42 @@ abstract class LPVariable(override val name: LPName, val domain: LPDomain) : LPR
         return intrinsic_constraints() + listOf(le_bigm, ge_neg_bigm, this)
     }
 
-    override fun as_expr(): LPAffineExpression = LPAffineExpression(
-        mapOf(this to 1.0),
-        0.0
-    )
+    override fun as_expr(): LPAffineExpression = LPAffineExpression(mapOf(this.name to 1.0), 0.0)
 
-    fun copy_as(name: LPName): LPVariable = when (this) {
-        is LPReal -> LPReal(name)
-        is LPInteger -> LPInteger(name)
-        is LPNonnegativeInteger -> LPNonnegativeInteger(name)
-        is LPBinary -> LPBinary(name)
-        else -> throw Exception("Unknown variable type")
-    }
+    fun copy_as(name: SegName): LPVariable =
+        when (this) {
+            is LPReal -> LPReal(name)
+            is LPBinary -> LPBinary(name)
+            is LPNonnegativeInteger -> LPNonnegativeInteger(name)
+            is LPInteger -> LPInteger(name)
+            else -> throw Exception("Unknown variable type")
+        }
 
-    operator fun plus(other: LPVariable): LPAffineExpression {
-        return LPAffineExpression(
-            mapOf(this to 1.0, other to 1.0),
-            0.0
-        )
+    operator fun plus(other: LPExprLike): LPAffineExpression {
+        return this.as_expr() + other.as_expr()
     }
 
     operator fun plus(other: Number): LPAffineExpression {
-        return LPAffineExpression(
-            mapOf(this to 1.0),
-            other.toDouble()
-        )
+        return LPAffineExpression(mapOf(name to 1.0), other.toDouble())
     }
 
-    operator fun minus(other: LPVariable): LPAffineExpression {
-        return LPAffineExpression(
-            mapOf(this to 1.0, other to -1.0),
-            0.0
-        )
+    operator fun minus(other: LPExprLike): LPAffineExpression {
+        return this.as_expr() - other.as_expr()
     }
 
     operator fun minus(other: Number): LPAffineExpression {
-        return LPAffineExpression(
-            mapOf(this to 1.0),
-            -other.toDouble()
-        )
+        return this.as_expr() - other.toDouble()
     }
 
     operator fun unaryMinus(): LPAffineExpression {
-        return LPAffineExpression(
-            mapOf(this to -1.0),
-            0.0
-        )
+        return LPAffineExpression(mapOf(name to -1.0), 0.0)
+    }
+
+    operator fun times(other: Number): LPAffineExpression {
+        return this.as_expr() * other.toDouble()
     }
 
     override fun toString(): String {
         return "${javaClass.simpleName}[${name}]"
     }
 }
-
