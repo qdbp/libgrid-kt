@@ -1,5 +1,7 @@
 package grid_model
 
+import grid_model.kulp_adapters.PointTileConstraint
+
 /**
  * An extent is a set of local constraints imposed on tiles by the existence of an entity.
  *

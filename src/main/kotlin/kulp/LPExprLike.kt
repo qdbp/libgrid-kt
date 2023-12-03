@@ -5,6 +5,6 @@ package kulp
  *
  * TODO somehow implement this for Number??
  */
-interface LPExprLike {
-    fun as_expr(): LPAffineExpression
-}
+// interface LPAffExpr<N: Number> {
+//     fun as_expr(): LPAffineExpression<N>
+// }

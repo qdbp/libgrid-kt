@@ -14,16 +14,18 @@ import model.SegName
  * implementation details do not intrude on the modelling layer.
  */
 context(Solver)
-abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx: MipContext)  {
+abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: MipContext) {
 
     context(Solver)
-    abstract fun consume_variable(variable: LPVariable)
+    abstract fun consume_variable(variable: LPVariable<*>)
 
     context(Solver)
     abstract fun consume_constraint(constraint: LPConstraint)
 
+    // TODO for CP-SAT we might want to parameterize the objective expr type, to allow us to
+    // require an integer objective.
     context(Solver)
-    abstract fun consume_objective(objective: LPAffineExpression, sense: LPObjectiveSense)
+    abstract fun consume_objective(objective: LPAffExpr<Double>, sense: LPObjectiveSense)
 
     context(Solver)
     fun init() {
@@ -31,7 +33,7 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
         val already_consumed = mutableSetOf<SegName>()
 
         // first, consume all variables
-        val variables = primtives.filterIsInstance<LPVariable>()
+        val variables = primtives.filterIsInstance<LPVariable<*>>()
         for (variable in variables) {
             if (!variable.is_primitive(ctx)) {
                 throw Exception("Non-primitive variable $variable found in problem render. Bug!")
@@ -46,7 +48,9 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
         val constraints = primtives.filterIsInstance<LPConstraint>()
         for (constraint in constraints) {
             if (!constraint.is_primitive(ctx)) {
-                throw Exception("Non-primitive constraint $constraint found in problem render. Bug!")
+                throw Exception(
+                    "Non-primitive constraint $constraint found in problem render. Bug!"
+                )
             }
             if (constraint.name !in already_consumed) {
                 consume_constraint(constraint)
@@ -55,7 +59,7 @@ abstract class LPAdapter<Solver, SolverParams> (val problem: LPProblem, val ctx:
         }
 
         val (obj, sense) = problem.get_objective()
-        consume_objective(obj.as_expr(), sense)
+        consume_objective(obj.relax(), sense)
     }
 
     context(Solver)

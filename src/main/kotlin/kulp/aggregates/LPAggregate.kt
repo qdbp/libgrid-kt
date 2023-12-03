@@ -1,11 +1,15 @@
 package kulp.aggregates
 
-import model.SegName
 import kulp.LPRenderable
 import kulp.MipContext
 import mdspan.NDSpan
+import model.SegName
 
-abstract class  LPAggregate<T: LPRenderable>(override val name: SegName, vars: List<T>, shape: List<Int>): NDSpan<T>(vars, shape), LPRenderable {
+abstract class LPAggregate<T : LPRenderable>(
+    override val name: SegName,
+    vars: List<T>,
+    shape: List<Int>
+) : NDSpan<T>(vars, shape), LPRenderable {
 
     final override fun is_primitive(ctx: MipContext): Boolean = false
 
@@ -16,12 +20,12 @@ abstract class  LPAggregate<T: LPRenderable>(override val name: SegName, vars: L
     }
 
     /**
-     * Return a list of renderables needed to model the "interaction terms" of this aggregate.
-     * When the aggregate is rendered, these are appended to the render output of the individual
+     * Return a list of renderables needed to model the "interaction terms" of this aggregate. When
+     * the aggregate is rendered, these are appended to the render output of the individual
      * constituent variables.
      *
-     * If such a list is empty, you are probably better off using a simple container
-     * instead of an LPAggregate subclass.
+     * If such a list is empty, you are probably better off using a simple container instead of an
+     * LPAggregate subclass.
      */
     abstract fun render_interactions(): List<LPRenderable>
 }

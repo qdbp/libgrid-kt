@@ -1,6 +1,6 @@
 package grid_model
 
-import kulp.LPRenderable
+import grid_model.kulp_adapters.PointTileConstraint
 
 /**
  * Absolutely-located tile constraints are the bridge class between the abstract formulation of

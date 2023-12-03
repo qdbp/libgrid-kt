@@ -1,12 +1,9 @@
 package kulp.constraints
 
-import model.SegName
 import kulp.LPRenderable
+import model.SegName
 
-abstract class LPConstraint: LPRenderable {
+abstract class LPConstraint : LPRenderable {
 
-    fun constraint_identifier(): SegName {
-        return SegName("cxt_${javaClass.simpleName}")
-    }
+    fun constraint_identifier(): SegName = SegName(javaClass.simpleName)
 }
-

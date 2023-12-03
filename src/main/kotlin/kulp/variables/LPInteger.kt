@@ -1,19 +1,12 @@
 package kulp.variables
 
+import kulp.IntAffExpr
+import kulp.LPAffExpr
 import kulp.LPDomain
-import kulp.constraints.LPConstraint
-import kulp.constraints.LP_LEQ
 import model.SegName
 
 open class LPInteger(
     name: SegName,
     val lb: Int? = null,
     val ub: Int? = null,
-) : LPVariable(name, LPDomain.Integral) {
-    override fun intrinsic_constraints(): List<LPConstraint> {
-        val out = mutableListOf<LPConstraint>()
-        lb?.let { out.add(LP_LEQ(name.refine("lb"), it, this.as_expr())) }
-        ub?.let { out.add(LP_LEQ(name.refine("ub"), this.as_expr(), it)) }
-        return out
-    }
-}
+) : LPVariable<Int>(name, LPDomain.Integral), LPAffExpr<Int> by IntAffExpr(mapOf(name to 1), 0)

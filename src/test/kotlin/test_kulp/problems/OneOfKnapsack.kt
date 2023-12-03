@@ -35,7 +35,7 @@ private object OneOfKnapsackProblem : LPProblem() {
     val chosen_weights = item_selectors.zip(item_values).map { pair -> pair.first.lp_dot(pair.second) }
     val chosen_values = item_selectors.zip(item_weights).map { pair -> pair.first.lp_dot(pair.second) }
 
-    override fun get_objective(): Pair<LPExprLike, LPObjectiveSense> {
+    override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
         return Pair(chosen_values.lp_sum(), LPObjectiveSense.Maximize)
     }
 

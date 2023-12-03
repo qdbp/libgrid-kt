@@ -31,9 +31,9 @@ private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : 
 
     val yt = if (do_max) IntMax("max".sn, xs) else IntMin("min".sn, xs)
 
-    override fun get_objective(): Pair<LPExprLike, LPObjectiveSense> {
-        return if (do_minimize) Pair(yt.as_expr(), LPObjectiveSense.Minimize)
-        else Pair(yt.as_expr(), LPObjectiveSense.Maximize)
+    override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
+        return if (do_minimize) Pair(yt, LPObjectiveSense.Minimize)
+        else Pair(yt, LPObjectiveSense.Maximize)
     }
 
     override fun get_renderables(): List<LPRenderable> {

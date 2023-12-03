@@ -6,5 +6,5 @@ enum class LPSolutionStatus {
     Feasible,
     Unbounded,
     Unsolved,
-    Error;
+    Error
 }

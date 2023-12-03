@@ -12,6 +12,10 @@ val String.sn
 class SegName(private val segments: List<String>) {
     constructor(vararg segments: String) : this(segments.toList())
 
+    fun rename_tip(s: String): SegName {
+        return SegName(segments.dropLast(1) + s)
+    }
+
     fun refine(vararg s: String): SegName {
         return SegName(segments + s.toList())
     }

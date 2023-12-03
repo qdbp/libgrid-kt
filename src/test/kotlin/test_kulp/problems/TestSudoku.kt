@@ -14,14 +14,14 @@ import org.junit.jupiter.api.Test
 
 private object SudokuProblem : LPProblem() {
 
-    val variables: Map<SegName, LPVariable> =
+    val variables: Map<SegName, LPBinary> =
         ndindex(9, 9, 9).associate {
             val name = "z".sn.refine(it[0], it[1], it[2])
             name to LPBinary(name)
         }
 
-    override fun get_objective(): Pair<LPExprLike, LPObjectiveSense> {
-        return Pair(LPAffineExpression(), LPObjectiveSense.Minimize)
+    override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
+        return Pair(RealAffExpr(), LPObjectiveSense.Minimize)
     }
 
     val initial_list =

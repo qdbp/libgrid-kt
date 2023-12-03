@@ -9,6 +9,7 @@ import kulp.adapters.ORToolsAdapter
 import kulp.constraints.LP_EQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPNonnegativeReal
+import kulp.variables.LPReal
 import kulp.variables.LPVariable
 import model.sn
 import org.junit.jupiter.api.Test
@@ -76,7 +77,7 @@ private object WhiskasProblem : LPProblem() {
     private val max_nutrients = mapOf("fibre".sn to 2.00, "salt".sn to 0.40)
     private val min_nutrients = mapOf("protein".sn to 8.00, "fat".sn to 6.00)
 
-    override fun get_objective(): Pair<LPExprLike, LPObjectiveSense> {
+    override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
         val variables = whiskas_variables()
         val objective = variables.associateWith { prices[it.name]!! }.lp_dot()
         return Pair(objective, LPObjectiveSense.Minimize)
@@ -114,7 +115,7 @@ private object WhiskasProblem : LPProblem() {
         return renderables
     }
 
-    fun whiskas_variables(): List<LPVariable> {
+    fun whiskas_variables(): List<LPReal> {
         return listOf(
             LPNonnegativeReal("chicken".sn),
             LPNonnegativeReal("beef".sn),

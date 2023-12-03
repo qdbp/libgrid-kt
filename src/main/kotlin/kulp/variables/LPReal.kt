@@ -1,9 +1,10 @@
 package kulp.variables
 
+import kulp.LPAffExpr
 import kulp.LPDomain
+import kulp.RealAffExpr
 import model.SegName
-import kulp.constraints.LPConstraint
 
-open class LPReal(name: SegName) : LPVariable(name, LPDomain.Real) {
-    override fun intrinsic_constraints(): List<LPConstraint> = listOf()
-}
+open class LPReal(name: SegName, val lb: Double? = null, val ub: Double? = null) :
+    LPVariable<Double>(name, LPDomain.Real),
+    LPAffExpr<Double> by RealAffExpr(mapOf(name to 1.0), 0.0)

@@ -48,12 +48,12 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         }
     }
 
-    private val known_variables = mutableMapOf<SegName, Pair<MPVariable, LPVariable>>()
+    private val known_variables = mutableMapOf<SegName, Pair<MPVariable, LPVariable<*>>>()
     private val known_constraints = mutableMapOf<SegName, Pair<MPConstraint, LPConstraint>>()
     private var objective: MPObjective? = null
 
     context(MPSolver)
-    override fun consume_variable(variable: LPVariable) {
+    override fun consume_variable(variable: LPVariable<*>) {
         // right now we skip duplicate variables, because they might be rendered multipled times
         // with this not necessarily indicating an error. However, we might want to add a strict
         // mode?
@@ -64,10 +64,19 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         val ortools_var =
             when (variable) {
                 // note: we skip intrinsic constraints for these types because we can express them
-                is LPReal -> makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                is LPBinary -> makeIntVar(0.0, 1.0, ortools_name)
-                is LPNonnegativeInteger -> makeIntVar(0.0, MPSolver.infinity(), ortools_name)
-                is LPInteger -> makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
+                is LPReal ->
+                    makeNumVar(
+                        variable.lb ?: -MPSolver.infinity(),
+                        variable.ub ?: MPSolver.infinity(),
+                        ortools_name
+                    )
+                is LPBinary -> makeBoolVar(ortools_name)
+                is LPInteger ->
+                    makeIntVar(
+                        variable.lb?.toDouble() ?: -MPSolver.infinity(),
+                        variable.ub?.toDouble() ?: MPSolver.infinity(),
+                        ortools_name
+                    )
                 // for anything else we make a "generic" variable and trust that the intrinsics
                 // have been added during the rendering pass!
                 else ->
@@ -90,29 +99,27 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         val ortools_constraint =
             when (constraint) {
                 is LP_LEQ -> {
-                    makeConstraint(MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                        .apply {
-                            for ((variable, coef) in constraint.std_lhs.terms) {
-                                known_variables[variable]?.let {
-                                    setCoefficient(it.first, coef)
+                    makeConstraint(MPSolver.infinity(), MPSolver.infinity(), ortools_name).apply {
+                        for ((variable, coef) in constraint.std_lhs.terms) {
+                            known_variables[variable]?.let { setCoefficient(it.first, coef) }
+                                ?: logger.warn {
+                                    "Unknown variable ${variable} in constraint. Bug?? Skipping."
                                 }
-                                    ?: logger.warn {
-                                        "Unknown variable ${variable} in constraint. Bug?? Skipping."
-                                    }
-                            }
-                            setBounds(-MPSolver.infinity(), -constraint.std_lhs.constant)
-                            known_constraints[constraint.name] = Pair(this, constraint)
                         }
+                        setBounds(-MPSolver.infinity(), -constraint.std_lhs.constant)
+                        known_constraints[constraint.name] = Pair(this, constraint)
+                    }
                 }
                 else ->
                     throw Exception(
-                        "Passed unreduced (non-LEQ) constraint to ORToolsAdapter. Bug??")
+                        "Passed unreduced (non-LEQ) constraint to ORToolsAdapter. Bug??"
+                    )
             }
         known_constraints[constraint.name] = Pair(ortools_constraint, constraint)
     }
 
     context(MPSolver)
-    override fun consume_objective(objective: LPAffineExpression, sense: LPObjectiveSense) {
+    override fun consume_objective(objective: LPAffExpr<Double>, sense: LPObjectiveSense) {
         val ortools_objective = objective()
         for (term in objective.terms.entries) {
             known_variables[term.key]?.let {
@@ -138,6 +145,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         return ORToolsSolution(
             objective_value = objective?.value(),
             solved_value_map = value_map,
-            ortools_status = result)
+            ortools_status = result
+        )
     }
 }

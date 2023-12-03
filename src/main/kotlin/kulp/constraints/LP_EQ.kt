@@ -3,22 +3,16 @@ package kulp.constraints
 import kulp.*
 import model.SegName
 
-class LP_EQ(override val name: SegName, lhs: LPExprLike, rhs: LPExprLike) : LPConstraint() {
+// TODO may want to parameterize for CP-SAT to force all-int constraints
+//  for now we project+relax
+class LP_EQ(override val name: SegName, lhs: LPAffExpr<*>, rhs: LPAffExpr<*>) : LPConstraint() {
 
-    constructor(
-        name: SegName,
-        lhs: Number,
-        rhs: LPExprLike
-    ) : this(name, LPAffineExpression(lhs), rhs)
+    constructor(name: SegName, lhs: Number, rhs: LPAffExpr<*>) : this(name, RealAffExpr(lhs), rhs)
 
-    constructor(
-        name: SegName,
-        lhs: LPExprLike,
-        rhs: Number
-    ) : this(name, lhs, LPAffineExpression(rhs))
+    constructor(name: SegName, lhs: LPAffExpr<*>, rhs: Number) : this(name, lhs, RealAffExpr(rhs))
 
     // standard form: lhs == 0
-    private val std_lhs: LPAffineExpression = lhs.as_expr() - rhs.as_expr()
+    private val std_lhs: LPAffExpr<Double> = lhs.relax() - rhs.relax()
 
     // TODO add capability flags to MipContext which can be used to disable this
     override fun is_primitive(ctx: MipContext): Boolean = false
