@@ -7,19 +7,13 @@ import model.SegName
 
 open class LPInteger(
     name: SegName,
-    private val lb: ILPIntBound = LPInfinite,
-    private val ub: ILPIntBound = LPInfinite
+    val lb: Int? = null,
+    val ub: Int? = null,
 ) : LPVariable(name, LPDomain.Integral) {
     override fun intrinsic_constraints(): List<LPConstraint> {
         val out = mutableListOf<LPConstraint>()
-        when (lb) {
-            is LPIntBound -> out.add(LP_LEQ(name.refine("lb"), lb.value, this.as_expr()))
-            is LPInfinite -> {}
-        }
-        when (ub) {
-            is LPIntBound -> out.add(LP_LEQ(name.refine("ub"), this.as_expr(), ub.value))
-            is LPInfinite -> {}
-        }
+        lb?.let { out.add(LP_LEQ(name.refine("lb"), it, this.as_expr())) }
+        ub?.let { out.add(LP_LEQ(name.refine("ub"), this.as_expr(), it)) }
         return out
     }
 }

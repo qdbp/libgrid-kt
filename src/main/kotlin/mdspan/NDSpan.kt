@@ -68,13 +68,9 @@ private constructor(val data: List<T>, val shape: List<Int>, val strides: List<I
     }
 
     // public operators
-    operator fun get(vararg indices: Int): T {
-        return data[get_offset(*indices)]
-    }
+    operator fun get(vararg indices: Int): T = data[get_offset(*indices)]
 
-    operator fun get(indices: List<Int>): T {
-        return data[get_offset(*indices.toIntArray())]
-    }
+    operator fun get(indices: List<Int>): T = data[get_offset(*indices.toIntArray())]
 
     fun slice(vararg prefix: Int): NDSpan<T> {
         require(prefix.size <= shape.size)
@@ -118,9 +114,9 @@ private constructor(val data: List<T>, val shape: List<Int>, val strides: List<I
         return NDSpan(new_data, new_shape)
     }
 
-    fun slice(slice: List<SliceLike>): NDSpan<T> {
-        return slice(*slice.toTypedArray())
-    }
+    fun slice(slice: List<SliceLike>): NDSpan<T> = slice(*slice.toTypedArray())
+
+    val indices: List<List<Int>> = ndindex(shape)
 
     // shape manipulation
     fun squeeze(): NDSpan<T> {
@@ -235,7 +231,7 @@ private constructor(val data: List<T>, val shape: List<Int>, val strides: List<I
         for (ix in ndindex(new_shape)) {
             var sum = sum_init
             // looping over all cells of the kernel...
-            kernel@ for (kx in ndindex(kernel.shape))  {
+            kernel@ for (kx in ndindex(kernel.shape)) {
                 val input_ix = mutableListOf<Int>()
                 // looping over dimensions to build the index into the input array.
                 for (i in shape.indices) {

@@ -3,7 +3,7 @@ package kulp.variables
 import kulp.LPAffineExpression
 import model.SegName
 
-class LPBinary(name: SegName) : LPInteger(name, LPIntBound(0), LPIntBound(1)) {
+class LPBinary(name: SegName) : LPInteger(name, 0, 1) {
     operator fun not(): LPAffineExpression {
         return LPAffineExpression(
             mapOf(

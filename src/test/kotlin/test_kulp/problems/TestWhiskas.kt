@@ -1,4 +1,4 @@
-package test_kulp
+package test_kulp.problems
 
 import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver

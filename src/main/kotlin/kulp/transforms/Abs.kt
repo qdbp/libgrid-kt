@@ -10,7 +10,7 @@ import kulp.constraints.LPConstraint
 import kulp.variables.LPBinary
 import kulp.variables.LPVariable
 
-class Abs(private val x: LPVariable) : Transform() {
+class Abs(private val x: LPVariable) : LPTransform() {
 
   // we can build our auxiliaries statically
   private var auxiliaries: MutableList<LPVariable> = mutableListOf()

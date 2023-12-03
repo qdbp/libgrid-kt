@@ -27,3 +27,5 @@ class LP_LEQ(override val name: SegName, lhs: LPExprLike, rhs: LPExprLike = LPAf
 }
 
 fun LP_GEQ(name: SegName, lhs: LPExprLike, rhs: LPExprLike) = LP_LEQ(name, rhs, lhs)
+fun LP_GEQ(name: SegName, lhs: Number, rhs: LPExprLike) = LP_LEQ(name, rhs, lhs)
+fun LP_GEQ(name: SegName, lhs: LPExprLike, rhs: Number) = LP_LEQ(name, rhs, lhs)

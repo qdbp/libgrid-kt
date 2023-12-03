@@ -6,7 +6,7 @@ import kulp.LPRenderable
 abstract class LPConstraint: LPRenderable {
 
     fun constraint_identifier(): SegName {
-        return SegName("constraint_${javaClass.simpleName}")
+        return SegName("cxt_${javaClass.simpleName}")
     }
 }
 

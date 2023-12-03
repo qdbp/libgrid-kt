@@ -1,4 +1,4 @@
-package test_kulp
+package test_kulp.test_transforms
 
 import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver
@@ -9,16 +9,13 @@ import kulp.*
 import kulp.adapters.ORToolsAdapter
 import kulp.constraints.LP_EQ
 import kulp.transforms.IntClip
-import kulp.variables.ILPIntBound
-import kulp.variables.LPInfinite
 import kulp.variables.LPInteger
-import kulp.variables.bound
 import model.SegName
 
 private class IntClipTestProblem(
     val mk_objective: (LPAffineExpression) -> Pair<LPExprLike, LPObjectiveSense>,
-    lb: ILPIntBound,
-    ub: ILPIntBound,
+    lb: Int?,
+    ub: Int?,
     val pin_x: Int? = null
 ) : LPProblem() {
 
@@ -54,12 +51,7 @@ class TestIntClip {
 
     @Test
     fun testLbOnly() {
-        val prob =
-            IntClipTestProblem(
-                { it to LPObjectiveSense.Minimize },
-                lb = (-10).bound,
-                ub = LPInfinite
-            )
+        val prob = IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -10, ub = null)
         val solution = testProblem(prob)
         assertNull(prob.yt.z_ub)
         assertEquals(1.0, solution.value_of(prob.yt.z_lb!!.name))
@@ -69,8 +61,7 @@ class TestIntClip {
 
     @Test
     fun testUbOnly() {
-        val prob =
-            IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = LPInfinite, ub = 10.bound)
+        val prob = IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = null, ub = 10)
         val solution = testProblem(prob)
         assertEquals(solution.status(), LPSolutionStatus.Optimal)
         assertEquals(10.0, solution.objective_value())
@@ -79,12 +70,7 @@ class TestIntClip {
     @Test
     fun testUbOnlyForcePinned() {
         val prob =
-            IntClipTestProblem(
-                { it to LPObjectiveSense.Minimize },
-                lb = LPInfinite,
-                ub = 10.bound,
-                pin_x = 20
-            )
+            IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = null, ub = 10, pin_x = 20)
         val solution = testProblem(prob)
         assert(solution.status() == LPSolutionStatus.Optimal)
         assertNull(prob.yt.z_lb)
@@ -94,8 +80,7 @@ class TestIntClip {
 
     @Test
     fun testUbLBMaximize() {
-        val prob =
-            IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = (-10).bound, ub = 10.bound)
+        val prob = IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = -10, ub = 10)
         val solution = testProblem(prob)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(0.0, solution.value_of(prob.yt.z_lb!!.name))
@@ -105,8 +90,7 @@ class TestIntClip {
 
     @Test
     fun testUbLBMinimize() {
-        val prob =
-            IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = (-5).bound, ub = 5.bound)
+        val prob = IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -5, ub = 5)
         val solution = testProblem(prob)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(1.0, solution.value_of(prob.yt.z_lb!!.name))
@@ -117,12 +101,7 @@ class TestIntClip {
     @Test
     fun testUbLBMinimizeForcePinned() {
         val prob =
-            IntClipTestProblem(
-                { it to LPObjectiveSense.Minimize },
-                lb = (-5).bound,
-                ub = 5.bound,
-                pin_x = -20
-            )
+            IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -5, ub = 5, pin_x = -20)
         val solution = testProblem(prob)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(solution.value_of(prob.yt.z_lb!!.name), 1.0)
