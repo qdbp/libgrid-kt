@@ -96,9 +96,8 @@ private constructor(val y: LPInteger, val x: LPInteger, val clip_lb: Int?, val c
 
     override fun is_primitive(ctx: MipContext): Boolean = false
 
-    override fun render(ctx: MipContext): List<LPRenderable> {
-        val constraints: List<LPRenderable> = get_constraints_for_M(ctx.bigM)
-        return constraints + listOfNotNull(y, z_lb, z_ub)
+    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+        return get_constraints_for_M(ctx.bigM) + listOfNotNull(z_lb, z_ub)
     }
 }
 

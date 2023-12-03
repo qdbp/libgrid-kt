@@ -1,7 +1,9 @@
 package kulp
 
 import kotlin.math.roundToInt
-import kulp.variables.LPVariable
+import kulp.constraints.LP_EQ
+import kulp.variables.LPInteger
+import kulp.variables.LPReal
 import model.SegName
 
 /**
@@ -47,23 +49,9 @@ interface LPAffExpr<N : Number> {
     operator fun <M : Number> times(other: LPAffExpr<M>): LPAffExpr<Double> {
         return this.relax() * other.relax()
     }
-}
 
-@Suppress("UNCHECKED_CAST")
-inline fun <reified N : Number> LPAffExpr<N>.zero_expr(): LPAffExpr<N> {
-    return when (N::class) {
-        Double::class -> RealAffExpr(0.0)
-        Float::class -> RealAffExpr(0.0)
-        Int::class -> IntAffExpr(0)
-        Long::class -> IntAffExpr(0)
-        else -> throw NotImplementedError()
-    }
-        as LPAffExpr<N>
-}
-
-/** Convenience method for creating a trivial affine expression. */
-inline fun <reified N : Number> LPVariable<N>.trivial(): LPAffExpr<N> {
-    return zero_expr() + this
+    /** Returns a transform-wrapped that is constrained to equal this expression. */
+    fun reify(name: SegName): LPTransform<N>
 }
 
 /** Represents an affine expression with real coefficients, constants and variables. */
@@ -110,6 +98,15 @@ data class RealAffExpr(override val terms: Map<SegName, Double>, override val co
             return null
         }
         return IntAffExpr(terms.mapValues { it.value.roundToInt() }, constant.roundToInt())
+    }
+
+    override fun reify(name: SegName): LPTransform<Double> {
+        val variable = LPReal(name)
+        return object : LPTransform<Double>(variable) {
+            override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+                return listOf(LP_EQ(name.refine("reify_pin"), variable, this@RealAffExpr))
+            }
+        }
     }
 }
 
@@ -161,5 +158,14 @@ data class IntAffExpr(override val terms: Map<SegName, Int>, override val consta
 
     override fun plus(other: Int): LPAffExpr<Int> {
         return IntAffExpr(terms, constant + other)
+    }
+
+    override fun reify(name: SegName): LPTransform<Int> {
+        val variable = LPInteger(name)
+        return object : LPTransform<Int>(variable) {
+            override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+                return listOf(LP_EQ(name.refine("reify_pin"), variable, this@IntAffExpr))
+            }
+        }
     }
 }

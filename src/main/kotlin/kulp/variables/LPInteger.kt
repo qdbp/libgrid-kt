@@ -6,7 +6,9 @@ import kulp.LPDomain
 import model.SegName
 
 open class LPInteger(
-    name: SegName,
+    override val name: SegName,
     val lb: Int? = null,
     val ub: Int? = null,
-) : LPVariable<Int>(name, LPDomain.Integral), LPAffExpr<Int> by IntAffExpr(mapOf(name to 1), 0)
+) : LPVariable<Int>, LPAffExpr<Int> by IntAffExpr(mapOf(name to 1), 0) {
+    override val domain: LPDomain = LPDomain.Integral
+}

@@ -4,6 +4,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kulp.LPRenderable
+import kulp.LPTransform
 import kulp.MipContext
 import kulp.aggregates.LPOneOfN
 import kulp.constraints.LP_GEQ
@@ -37,10 +38,10 @@ class IntMax private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) 
 
     constructor(name: SegName, vars: List<LPInteger>) : this(name, NDSpan(vars))
 
-    val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
+    private val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
 
-    override fun render(ctx: MipContext): List<LPRenderable> {
-        val renderables = mutableListOf(selector, y)
+    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+        val renderables: MutableList<LPRenderable> = mutableListOf(selector)
         // standard max formulation:
         // for all i: y >= x_i
         // exists j : y <= x_j
@@ -74,14 +75,14 @@ class IntMin private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) 
 
     constructor(name: SegName, vars: List<LPInteger>) : this(name, NDSpan(vars))
 
-    val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
+    private val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
 
-    override fun render(ctx: MipContext): List<LPRenderable> {
+    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
         // standard min formulation:
         // for all i: y <= x_i
         // exists j : y >= x_j
         // selector picks out j
-        val renderables = mutableListOf(selector, y)
+        val renderables: MutableList<LPRenderable> = mutableListOf(selector)
         for (ix in vars.indices) {
             renderables.add(LP_LEQ(name.refine("le_input").refine(ix), y, vars[ix]))
             renderables.add(

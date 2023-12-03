@@ -1,5 +1,10 @@
 package kulp
 
+import io.github.oshai.kotlinlogging.KotlinLogging
+import model.SegName
+
+private val logger = KotlinLogging.logger {}
+
 abstract class LPProblem : LPRenderable {
 
     abstract fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense>
@@ -17,16 +22,22 @@ abstract class LPProblem : LPRenderable {
     final override fun render(ctx: MipContext): List<LPRenderable> {
 
         val resolved_renderables = mutableListOf<LPRenderable>()
+        val seen_names = mutableSetOf<SegName>()
 
         // copy these to mutable lists
         val open_renderables: MutableList<LPRenderable> = get_renderables().toMutableList()
 
         while (open_renderables.isNotEmpty()) {
             val renderable = open_renderables.removeFirst()
+            if (renderable.name in seen_names) {
+                logger.warn { "Renderable ${renderable.name} already seen, skipping re-render." }
+            }
             if (renderable.is_primitive(ctx)) {
                 resolved_renderables.add(renderable)
+                seen_names.add(renderable.name)
             } else {
-                open_renderables.addAll(renderable.render(ctx))
+                val new_renderables = renderable.render(ctx)
+                open_renderables.addAll(new_renderables)
             }
         }
 

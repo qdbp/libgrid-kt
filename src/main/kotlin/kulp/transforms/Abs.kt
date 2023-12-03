@@ -2,13 +2,13 @@ package kulp.transforms
 
 import kotlin.math.roundToInt
 import kulp.LPRenderable
+import kulp.LPTransform
 import kulp.MipContext
 import kulp.constraints.LPConstraint
 import kulp.constraints.LP_EQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
 import kulp.variables.LPVariable
-import model.SegName
 
 class Abs<N : Number> private constructor(val y: LPVariable<N>, val x: LPVariable<N>) :
     LPTransform<N>(y) {
@@ -33,7 +33,7 @@ class Abs<N : Number> private constructor(val y: LPVariable<N>, val x: LPVariabl
     override fun is_primitive(ctx: MipContext): Boolean = false
 
     /** We build constraints dynamically, since we need bigM to be known. */
-    override fun render(ctx: MipContext): List<LPRenderable> {
+    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
         val cxs: MutableList<LPConstraint> = mutableListOf()
 
         // split halves are positive

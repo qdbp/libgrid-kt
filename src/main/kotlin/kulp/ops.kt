@@ -17,6 +17,17 @@ inline fun <reified N : Number> KClass<N>.zero(): N {
         as N
 }
 
+inline fun <reified N : Number> KClass<N>.one(): N {
+    return when (N::class) {
+        Double::class -> 1.0
+        Float::class -> 1.0f
+        Int::class -> 1
+        Long::class -> 1L
+        else -> throw NotImplementedError()
+    }
+        as N
+}
+
 inline operator fun <reified N : Number> N.times(other: N): N {
     return when (N::class) {
         Double::class -> this.toDouble() * other.toDouble()
