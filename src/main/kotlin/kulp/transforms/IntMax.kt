@@ -28,8 +28,8 @@ private fun make_output_var(name: SegName, vars: NDSpan<LPInteger>, which: Strin
  *
  * Auxiliaries: |vars| 1-of-N binary set Outputs: 1 Integer output variable
  */
-class IntMax private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) :
-    LPTransform<Int>(y) {
+class IntMax private constructor(output: LPInteger, val vars: NDSpan<LPInteger>) :
+    LPTransform<Int>(output) {
 
     constructor(
         name: SegName,
@@ -47,11 +47,11 @@ class IntMax private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) 
         // exists j : y <= x_j
         // selector picks out j
         for (ix in vars.indices) {
-            renderables.add(LP_GEQ(name.refine("max_gt").refine(ix), y, vars[ix]))
+            renderables.add(LP_GEQ(name.refine("max_gt").refine(ix), output, vars[ix]))
             renderables.add(
                 LP_LEQ(
                     name.refine("max_le").refine(ix),
-                    y,
+                    output,
                     vars[ix] + ctx.bigM.roundToInt() * !selector[ix]
                 )
             )
@@ -65,8 +65,8 @@ class IntMax private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) 
  *
  * Auxiliaries: |vars| 1-of-N binary set Outputs: 1 Integer output variable
  */
-class IntMin private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) :
-    LPTransform<Int>(y) {
+class IntMin private constructor(output: LPInteger, val vars: NDSpan<LPInteger>) :
+    LPTransform<Int>(output) {
 
     constructor(
         name: SegName,
@@ -84,11 +84,11 @@ class IntMin private constructor(val y: LPInteger, val vars: NDSpan<LPInteger>) 
         // selector picks out j
         val renderables: MutableList<LPRenderable> = mutableListOf(selector)
         for (ix in vars.indices) {
-            renderables.add(LP_LEQ(name.refine("le_input").refine(ix), y, vars[ix]))
+            renderables.add(LP_LEQ(name.refine("le_input").refine(ix), output, vars[ix]))
             renderables.add(
                 LP_GEQ(
                     name.refine("ge_bind").refine(ix),
-                    y,
+                    output,
                     vars[ix] - ctx.bigM.roundToInt() * !selector[ix]
                 )
             )

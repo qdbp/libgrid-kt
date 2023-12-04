@@ -8,10 +8,10 @@ import com.google.ortools.linearsolver.MPVariable
 import kulp.*
 import kulp.constraints.LPConstraint
 import kulp.constraints.LP_LEQ
-import kulp.variables.*
+import kulp.variables.LPBinary
+import kulp.variables.LPInteger
+import kulp.variables.LPReal
 import model.SegName
-
-private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
 
 context(MPSolver)
 class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
@@ -102,9 +102,9 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                     makeConstraint(MPSolver.infinity(), MPSolver.infinity(), ortools_name).apply {
                         for ((variable, coef) in constraint.std_lhs.terms) {
                             known_variables[variable]?.let { setCoefficient(it.first, coef) }
-                                ?: logger.warn {
-                                    "Unknown variable ${variable} in constraint. Bug?? Skipping."
-                                }
+                                ?: throw IllegalArgumentException(
+                                    "Unknown variable ${variable} in constraint. Bug??."
+                                )
                         }
                         setBounds(-MPSolver.infinity(), -constraint.std_lhs.constant)
                         known_constraints[constraint.name] = Pair(this, constraint)
@@ -124,7 +124,10 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         for (term in objective.terms.entries) {
             known_variables[term.key]?.let {
                 ortools_objective.setCoefficient(it.first, term.value)
-            } ?: logger.warn { "Unknown variable ${term.key} in objective. Bug?? Skipping." }
+            }
+                ?: throw IllegalArgumentException(
+                    "Unknown variable ${term.key} in objective. Bug??."
+                )
         }
         when (sense) {
             LPObjectiveSense.Minimize -> ortools_objective.setMinimization()

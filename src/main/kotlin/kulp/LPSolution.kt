@@ -1,6 +1,5 @@
 package kulp
 
-import kulp.variables.LPVariable
 import model.SegName
 
 abstract class LPSolution {

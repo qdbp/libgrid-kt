@@ -2,57 +2,11 @@ package kulp
 
 import kotlin.math.roundToInt
 import kulp.constraints.LP_EQ
+import kulp.transforms.Constrained
+import kulp.transforms.IntClip
 import kulp.variables.LPInteger
 import kulp.variables.LPReal
 import model.SegName
-
-/**
- * Represents an affine expression of terms of the following form:
- *
- * a_1 * x_1 + a_2 * x_2 + ... + a_n * x_n + c
- */
-interface LPAffExpr<N : Number> {
-
-    val terms: Map<SegName, N>
-    val constant: N
-
-    // override fun as_expr(): LPAffineExpression<N> = this
-
-    /**
-     * Any affine expression can be relaxed to a real affine expression.
-     *
-     * Many times we don't care about keeping an expression integral. This method reduces
-     * boilerplate by allowing us to implicitly relax an expression to a real affine expression
-     * unless we strictly require a more specific type.
-     */
-    fun relax(): LPAffExpr<Double> {
-        return RealAffExpr(terms.mapValues { it.value.toDouble() }, constant.toDouble())
-    }
-
-    /** Yes, this implicitly prohibits unsigned instances of LPAffineExpression. */
-    operator fun unaryMinus(): LPAffExpr<N>
-
-    operator fun plus(other: N): LPAffExpr<N>
-
-    operator fun plus(other: LPAffExpr<N>): LPAffExpr<N>
-
-    operator fun minus(other: N): LPAffExpr<N>
-
-    operator fun minus(other: LPAffExpr<N>): LPAffExpr<N>
-
-    operator fun <M : Number> div(other: LPAffExpr<M>): LPAffExpr<Double> {
-        return this.relax() / other.relax()
-    }
-
-    operator fun times(other: N): LPAffExpr<N>
-
-    operator fun <M : Number> times(other: LPAffExpr<M>): LPAffExpr<Double> {
-        return this.relax() * other.relax()
-    }
-
-    /** Returns a transform-wrapped that is constrained to equal this expression. */
-    fun reify(name: SegName): LPTransform<N>
-}
 
 /** Represents an affine expression with real coefficients, constants and variables. */
 data class RealAffExpr(override val terms: Map<SegName, Double>, override val constant: Double) :
@@ -100,13 +54,17 @@ data class RealAffExpr(override val terms: Map<SegName, Double>, override val co
         return IntAffExpr(terms.mapValues { it.value.roundToInt() }, constant.roundToInt())
     }
 
-    override fun reify(name: SegName): LPTransform<Double> {
+    override fun reify(name: SegName): Constrained<Double> {
         val variable = LPReal(name)
-        return object : LPTransform<Double>(variable) {
-            override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
-                return listOf(LP_EQ(name.refine("reify_pin"), variable, this@RealAffExpr))
-            }
+        return Constrained(variable, LP_EQ(name.refine("reify_pin"), variable, this))
+    }
+
+    override fun evaluate(assignment: Map<SegName, Double>): Double? {
+        var result = constant
+        for ((name, coef) in terms) {
+            assignment[name]?.let { result += it * coef } ?: return null
         }
+        return result
     }
 }
 
@@ -160,12 +118,22 @@ data class IntAffExpr(override val terms: Map<SegName, Int>, override val consta
         return IntAffExpr(terms, constant + other)
     }
 
-    override fun reify(name: SegName): LPTransform<Int> {
+    override fun reify(name: SegName): Constrained<Int> {
         val variable = LPInteger(name)
-        return object : LPTransform<Int>(variable) {
-            override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
-                return listOf(LP_EQ(name.refine("reify_pin"), variable, this@IntAffExpr))
-            }
+        return Constrained(variable, LP_EQ(name.refine("reify_pin"), variable, this))
+    }
+
+    override fun evaluate(assignment: Map<SegName, Int>): Int? {
+        var result = constant
+        for ((name, coef) in terms) {
+            assignment[name]?.let { result += it * coef } ?: return null
         }
+        return result
     }
 }
+
+// extensions on LPAffExpr<Int> to be more generic
+fun LPAffExpr<Int>.int_clip(name: SegName, lb: Int?, ub: Int?): IntClip =
+    IntClip(name, this, lb, ub)
+
+fun LPAffExpr<Int>.bool_clip(name: SegName): IntClip = int_clip(name, 0, 1)

@@ -2,7 +2,7 @@ package kulp.adapters
 
 import kulp.*
 import kulp.constraints.LPConstraint
-import kulp.variables.LPVariable
+import kulp.LPVariable
 import model.SegName
 
 /**

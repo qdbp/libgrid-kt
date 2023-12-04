@@ -7,6 +7,7 @@ import kulp.constraints.LP_GEQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
 import kulp.variables.LPInteger
+import model.SegName
 
 /**
  * Returns a variable that is constrained to equal clip(expr, lb, ub) Cost:
@@ -20,16 +21,17 @@ import kulp.variables.LPInteger
  * - 4 constraints
  */
 class IntClip
-private constructor(val y: LPInteger, val x: LPInteger, val clip_lb: Int?, val clip_ub: Int?) :
+private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, val clip_ub: Int?) :
     LPTransform<Int>(y), LPAffExpr<Int> {
 
     companion object {
-        private fun make_output_var(x: LPInteger, lb: Int?, ub: Int?): LPInteger {
-            return LPInteger(x.name.refine("y"), lb, ub)
+        private fun make_output_var(name: SegName, lb: Int?, ub: Int?): LPInteger {
+            return LPInteger(name.refine("y"), lb, ub)
         }
     }
 
-    constructor(x: LPInteger, lb: Int?, ub: Int?) : this(make_output_var(x, lb, ub), x, lb, ub)
+    constructor(x: LPInteger, lb: Int?, ub: Int?) : this(make_output_var(x.name, lb, ub), x, lb, ub)
+    constructor(name: SegName, x: LPAffExpr<Int>, lb: Int?, ub: Int?) : this(make_output_var(name, lb, ub), x, lb, ub)
 
     val z_lb = clip_lb?.let { LPBinary(name.refine("z_lb")) }
     val z_ub = clip_ub?.let { LPBinary(name.refine("z_ub")) }
@@ -100,5 +102,3 @@ private constructor(val y: LPInteger, val x: LPInteger, val clip_lb: Int?, val c
         return get_constraints_for_M(ctx.bigM) + listOfNotNull(z_lb, z_ub)
     }
 }
-
-fun BoolClip(x: LPBinary) = IntClip(x, 0, 1)

@@ -19,8 +19,8 @@ class LP_EQ(override val name: SegName, lhs: LPAffExpr<*>, rhs: LPAffExpr<*>) : 
 
     override fun render(ctx: MipContext): List<LPRenderable> {
         return listOf(
-            LP_LEQ(name.refine(constraint_identifier()).refine("leq_0"), std_lhs, 0),
-            LP_LEQ(name.refine(constraint_identifier()).refine("geq_0"), -std_lhs, 0)
+            LP_LEQ(name.refine(constraint_identifier()).refine("lez"), std_lhs, 0),
+            LP_LEQ(name.refine(constraint_identifier()).refine("gez"), -std_lhs, 0)
         )
     }
 }

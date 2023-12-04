@@ -10,7 +10,6 @@ import kulp.constraints.LP_EQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPNonnegativeReal
 import kulp.variables.LPReal
-import kulp.variables.LPVariable
 import model.sn
 import org.junit.jupiter.api.Test
 

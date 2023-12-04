@@ -1,15 +1,13 @@
 package test_kulp.test_transforms
 
-import com.google.ortools.Loader
-import com.google.ortools.linearsolver.MPSolver
 import kulp.*
-import kulp.adapters.ORToolsAdapter
 import kulp.constraints.LP_EQ
 import kulp.transforms.IntMax
 import kulp.transforms.IntMin
 import kulp.variables.LPInteger
 import model.SegName
 import model.sn
+import test_kulp.ScipTester
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -43,26 +41,12 @@ private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : 
     override val name: SegName = "IntMaxMinProblem".sn
 }
 
-class TestIntMaxMin {
-
-    private fun testProblem(prob: IntMaxMinProblem): ORToolsAdapter.ORToolsSolution {
-        val ctx = MipContext(1000.0)
-        Loader.loadNativeLibraries()
-        val solver = MPSolver.createSolver("SCIP")
-        val solution =
-            solver.run {
-                val adapter = ORToolsAdapter(prob, ctx)
-                adapter.init()
-                println(exportModelAsLpFormat())
-                return@run adapter.run_solver()
-            }
-        return solution
-    }
+class TestIntMaxMin: ScipTester() {
 
     @Test
     fun testMaxMinimize() {
         val prob = IntMaxMinProblem(do_max = true, do_minimize = true)
-        val solution = testProblem(prob)
+        val solution = solveProblem(prob)
         assertEquals(7.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
@@ -70,7 +54,7 @@ class TestIntMaxMin {
     @Test
     fun testMaxMaximize() {
         val prob = IntMaxMinProblem(do_max = true, do_minimize = false)
-        val solution = testProblem(prob)
+        val solution = solveProblem(prob)
         assertEquals(7.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
@@ -78,7 +62,7 @@ class TestIntMaxMin {
     @Test
     fun testMinMinimizd() {
         val prob = IntMaxMinProblem(do_max = false, do_minimize = true)
-        val solution = testProblem(prob)
+        val solution = solveProblem(prob)
         assertEquals(-3.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
@@ -86,7 +70,7 @@ class TestIntMaxMin {
     @Test
     fun testMinMaximize() {
         val prob = IntMaxMinProblem(do_max = false, do_minimize = false)
-        val solution = testProblem(prob)
+        val solution = solveProblem(prob)
         assertEquals(-3.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }

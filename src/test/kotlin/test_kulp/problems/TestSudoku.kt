@@ -6,7 +6,6 @@ import kulp.*
 import kulp.adapters.ORToolsAdapter
 import kulp.constraints.LP_EQ
 import kulp.variables.LPBinary
-import kulp.variables.LPVariable
 import mdspan.*
 import model.SegName
 import model.sn

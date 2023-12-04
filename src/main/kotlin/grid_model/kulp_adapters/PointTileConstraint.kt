@@ -1,18 +1,16 @@
 package grid_model.kulp_adapters
 
 import grid_model.Tile
-import kulp.LPRenderable
-import kulp.MipContext
+import kulp.*
+import kulp.constraints.LP_GEQ
+import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
+import model.SegName
 
-/**
- * All constraints must reduce to the following normal form for tiles:
- * - OR ( (tile1 XOR tile2 XOR ...) AND (tile3 XOR tile4 XOR ...) AND ... ... )
- *
- * This models each point in the grid as satisfying at least one set of properties that consist of
- * each of a number of planes having a particular tile at that point.
- */
-sealed interface PointTileConstraint: TileAssignmentPredicate {
+// TODO TEST ALL THIS
+
+/** A constraint on the assignment of tiles at a single point. */
+sealed interface PointTileConstraint : TileAssignmentPredicate {
 
     /**
      * Given a set of active tiles at a point, returns true if the constraint is satisfied.
@@ -20,46 +18,95 @@ sealed interface PointTileConstraint: TileAssignmentPredicate {
      * This is not useful for compiling to the LP formulation, but can be used to debug at a higher
      * level, e.g. with a pre-solver. This is also useful for forming visualizations.
      */
-    infix fun is_satisfied_for(tiles: Set<Tile>): Boolean
-}
-
-class IsOneOf(val tiles: Set<Tile>) : PointTileConstraint {
-    constructor(vararg tiles: Tile) : this(tiles.toSet())
-
-    override fun is_satisfied_for(tiles: Set<Tile>): Boolean {
-        return tiles.any { it in this.tiles }
-    }
-
-}
-
-class IsNoneOf(val tiles: Set<Tile>) : PointTileConstraint {
-    constructor(vararg tiles: Tile) : this(tiles.toSet())
-
-    override fun is_satisfied_for(tiles: Set<Tile>): Boolean {
-        return tiles.none { it in this.tiles }
+    fun is_satisfied_for(ctx: MipContext, tile_at_point: Set<Tile>): Boolean {
+        return satisfaction_witness(ctx, tile_at_point.associateWith { LPBinary(it.tile_name()) })
+            .evaluate(tile_at_point.associate { it.tile_name() to 1 }.withDefault { 0 })!! >= 1
     }
 }
 
-class Xor(val constraints: Set<PointTileConstraint>) : PointTileConstraint {
-    constructor(vararg constraints: PointTileConstraint) : this(constraints.toSet())
-
-    override fun is_satisfied_for(tiles: Set<Tile>): Boolean {
-        return constraints.count { it.is_satisfied_for(tiles) } == 1
+class IsOneOf(override val name: SegName, val required_tiles: Set<Tile>) : PointTileConstraint {
+    /** Need to take a simple OR over all the assignments that are also in our desired set. */
+    override fun satisfaction_witness(
+        ctx: MipContext,
+        assignment: Map<Tile, LPBinary>
+    ): LPAffExpr<Int> {
+        // starting out easy...
+        return assignment.filterKeys { it in required_tiles }.values.lp_sum()
     }
 }
 
-class Or(val constraints: Set<PointTileConstraint>) : PointTileConstraint {
-    constructor(vararg constraints: PointTileConstraint) : this(constraints.toSet())
-
-    override fun is_satisfied_for(tiles: Set<Tile>): Boolean {
-        return constraints.any { it.is_satisfied_for(tiles) }
+class IsNoneOf(override val name: SegName, val tiles: Set<Tile>) : PointTileConstraint {
+    override fun satisfaction_witness(
+        ctx: MipContext,
+        assignment: Map<Tile, LPBinary>
+    ): LPAffExpr<Int> {
+        val M = ctx.intM
+        // we save an auxiliary by expressing this variable as the negative
+        val z_bad = LPBinary(name.refine("z_bad_tile"))
+        val constraints =
+            assignment.flatMap { (t, x) ->
+                listOf(
+                    LP_GEQ(z_bad.name.refine("ge_${t.tile_name()}"), M * z_bad, x),
+                    LP_LEQ(z_bad.name.refine("le_${t.tile_name()}}"), z_bad, x)
+                )
+            }
+        return z_bad.requiring(constraints)
     }
 }
 
-class And(val constraints: Set<PointTileConstraint>) : PointTileConstraint {
-    constructor(vararg constraints: PointTileConstraint) : this(constraints.toSet())
+class Xor(override val name: SegName, val constraints: Set<PointTileConstraint>) :
+    PointTileConstraint {
+    override fun satisfaction_witness(
+        ctx: MipContext,
+        assignment: Map<Tile, LPBinary>
+    ): LPAffExpr<Int> {
+        val clipped_constraints =
+            constraints.map {
+                it.satisfaction_witness(ctx, assignment).bool_clip(it.name.refine("xor_clip"))
+            }
+        // note, we CANNOT use LPOneOfN here, because that would FORCE the xor. We need to allow
+        // a falsifiable expression.
+        TODO()
+    }
+}
 
-    override fun is_satisfied_for(tiles: Set<Tile>): Boolean {
-        return constraints.all { it.is_satisfied_for(tiles) }
+class Or(override val name: SegName, val constraints: Set<PointTileConstraint>) :
+    PointTileConstraint {
+    override fun satisfaction_witness(
+        ctx: MipContext,
+        assignment: Map<Tile, LPBinary>
+    ): LPAffExpr<Int> {
+        val clipped_constraints =
+            constraints.map {
+                it.satisfaction_witness(ctx, assignment).bool_clip(it.name.refine("or_clip"))
+            }
+        return clipped_constraints.lp_sum()
+    }
+}
+
+class And(override val name: SegName, val constraints: Set<PointTileConstraint>) :
+    PointTileConstraint {
+    override fun satisfaction_witness(
+        ctx: MipContext,
+        assignment: Map<Tile, LPBinary>
+    ): LPAffExpr<Int> {
+        val clipped_constraints =
+            constraints.map {
+                it.satisfaction_witness(ctx, assignment).bool_clip(it.name.refine("and_clip"))
+            }
+        return clipped_constraints.lp_sum() - clipped_constraints.size + 1
+    }
+}
+
+class Not(override val name: SegName, val constraint: PointTileConstraint) : PointTileConstraint {
+    override fun satisfaction_witness(
+        ctx: MipContext,
+        assignment: Map<Tile, LPBinary>
+    ): LPAffExpr<Int> {
+        // TODO I'm starting to worry about variable discoverability through the expression tree...
+        //  LPRenderable as it is might not be up to the task. Consider what would happen if I had
+        //  made this !constriant(...).output, that would be a renderable that would miss all the
+        //  auxiliaries of the constraint.
+        return (1 - constraint.satisfaction_witness(ctx, assignment)).int_clip(name, 0, 1)
     }
 }

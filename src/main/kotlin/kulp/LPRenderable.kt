@@ -27,5 +27,9 @@ interface LPRenderable {
      */
     fun is_primitive(ctx: MipContext): Boolean
 
+    // TODO need to break this up into:
+    // -- own variables: List<PrimitiveLPVariable>
+    // -- own constraints: List<LPConstraint>
+    // -- owned children: List<LPRenderable>
     fun render(ctx: MipContext): List<LPRenderable>
 }
