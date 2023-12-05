@@ -6,15 +6,13 @@ import kulp.transforms.Constrained
 import kulp.transforms.IntClip
 import kulp.variables.LPInteger
 import kulp.variables.LPReal
-import model.SegName
+import model.LPName
 
 /** Represents an affine expression with real coefficients, constants and variables. */
-data class RealAffExpr(override val terms: Map<SegName, Double>, override val constant: Double) :
+data class RealAffExpr(override val terms: Map<LPName, Double>, override val constant: Double) :
     LPAffExpr<Double> {
 
     constructor(constant: Number) : this(mapOf(), constant.toDouble())
-
-    constructor() : this(0.0)
 
     override operator fun unaryMinus(): RealAffExpr {
         return RealAffExpr(terms.mapValues { -it.value }, -constant)
@@ -33,7 +31,7 @@ data class RealAffExpr(override val terms: Map<SegName, Double>, override val co
     }
 
     override fun plus(other: LPAffExpr<Double>): LPAffExpr<Double> {
-        val new_terms = mutableMapOf<SegName, Double>()
+        val new_terms = mutableMapOf<LPName, Double>()
         for ((k, v) in terms) {
             new_terms[k] = v
         }
@@ -54,12 +52,12 @@ data class RealAffExpr(override val terms: Map<SegName, Double>, override val co
         return IntAffExpr(terms.mapValues { it.value.roundToInt() }, constant.roundToInt())
     }
 
-    override fun reify(name: SegName): Constrained<Double> {
+    override fun reify(name: LPName): Constrained<Double> {
         val variable = LPReal(name)
         return Constrained(variable, LP_EQ(name.refine("reify_pin"), variable, this))
     }
 
-    override fun evaluate(assignment: Map<SegName, Double>): Double? {
+    override fun evaluate(assignment: Map<LPName, Double>): Double? {
         var result = constant
         for ((name, coef) in terms) {
             assignment[name]?.let { result += it * coef } ?: return null
@@ -68,12 +66,10 @@ data class RealAffExpr(override val terms: Map<SegName, Double>, override val co
     }
 }
 
-data class IntAffExpr(override val terms: Map<SegName, Int>, override val constant: Int) :
+data class IntAffExpr(override val terms: Map<LPName, Int>, override val constant: Int) :
     LPAffExpr<Int> {
 
     constructor(constant: Number) : this(mapOf(), constant.toInt())
-
-    constructor() : this(0)
 
     override fun unaryMinus(): LPAffExpr<Int> {
         return IntAffExpr(terms.mapValues { -it.value }, -constant)
@@ -104,7 +100,7 @@ data class IntAffExpr(override val terms: Map<SegName, Int>, override val consta
     }
 
     override fun plus(other: LPAffExpr<Int>): LPAffExpr<Int> {
-        val new_terms = mutableMapOf<SegName, Int>()
+        val new_terms = mutableMapOf<LPName, Int>()
         for ((k, v) in terms) {
             new_terms[k] = v
         }
@@ -118,12 +114,12 @@ data class IntAffExpr(override val terms: Map<SegName, Int>, override val consta
         return IntAffExpr(terms, constant + other)
     }
 
-    override fun reify(name: SegName): Constrained<Int> {
+    override fun reify(name: LPName): Constrained<Int> {
         val variable = LPInteger(name)
         return Constrained(variable, LP_EQ(name.refine("reify_pin"), variable, this))
     }
 
-    override fun evaluate(assignment: Map<SegName, Int>): Int? {
+    override fun evaluate(assignment: Map<LPName, Int>): Int? {
         var result = constant
         for ((name, coef) in terms) {
             assignment[name]?.let { result += it * coef } ?: return null
@@ -133,7 +129,7 @@ data class IntAffExpr(override val terms: Map<SegName, Int>, override val consta
 }
 
 // extensions on LPAffExpr<Int> to be more generic
-fun LPAffExpr<Int>.int_clip(name: SegName, lb: Int?, ub: Int?): IntClip =
+fun LPAffExpr<Int>.int_clip(name: LPName, lb: Int?, ub: Int?): IntClip =
     IntClip(name, this, lb, ub)
 
-fun LPAffExpr<Int>.bool_clip(name: SegName): IntClip = int_clip(name, 0, 1)
+fun LPAffExpr<Int>.bool_clip(name: LPName): IntClip = int_clip(name, 0, 1)

@@ -2,11 +2,11 @@ package test_kulp.test_transforms
 
 import kotlin.test.assertEquals
 import kulp.*
-import kulp.constraints.LPConstraint
+import kulp.LPConstraint
 import kulp.constraints.LP_EQ
 import kulp.transforms.ReifiedEQ
 import kulp.variables.LPInteger
-import model.SegName
+import model.LPName
 import model.sn
 import org.junit.jupiter.api.Test
 import test_kulp.ScipTester
@@ -29,7 +29,7 @@ private class ReifiedEqProblem(
         return listOf(z) + constraints + extra_renderables
     }
 
-    override val name: SegName = "ReifiedEqProblem".sn
+    override val name: LPName = "ReifiedEqProblem".sn
 }
 
 class TestReifiedEq : ScipTester() {

@@ -1,5 +1,5 @@
 package kulp.variables
 
-import model.SegName
+import model.LPName
 
-class LPNonnegativeInteger(name: SegName) : LPInteger(name, 0, null)
+class LPNonnegativeInteger(name: LPName) : LPInteger(name, 0, null)

@@ -9,9 +9,10 @@ import kulp.LPProblem
  * locality: each entity knows a fixed set of planes and their associated tile sets. Adding
  * additional planes to the problem cannot change an entity's semantics or behavior.
  */
-abstract class GridProblem() {
+abstract class GridProblem {
 
     abstract val name: String
+    abstract val dimension: GridDimension
 
     /** It's an ordered entity set, yes. */
     abstract fun get_entity_set(): Set<Entity>

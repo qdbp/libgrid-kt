@@ -6,12 +6,12 @@ import com.google.ortools.linearsolver.MPSolver
 import com.google.ortools.linearsolver.MPSolver.ResultStatus
 import com.google.ortools.linearsolver.MPVariable
 import kulp.*
-import kulp.constraints.LPConstraint
+import kulp.LPConstraint
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
 import kulp.variables.LPInteger
 import kulp.variables.LPReal
-import model.SegName
+import model.LPName
 
 context(MPSolver)
 class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
@@ -19,7 +19,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
 
     class ORToolsSolution(
         private val objective_value: Double?,
-        private val solved_value_map: Map<SegName, Double>,
+        private val solved_value_map: Map<LPName, Double>,
         private val ortools_status: ResultStatus
     ) : LPSolution() {
         override fun status(): LPSolutionStatus {
@@ -39,7 +39,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 ?: throw Exception("Objective value not available. Check status first!")
         }
 
-        override fun value_of(name: SegName): Double? {
+        override fun value_of(name: LPName): Double? {
             return solved_value_map[name]
         }
 
@@ -48,8 +48,8 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         }
     }
 
-    private val known_variables = mutableMapOf<SegName, Pair<MPVariable, LPVariable<*>>>()
-    private val known_constraints = mutableMapOf<SegName, Pair<MPConstraint, LPConstraint>>()
+    private val known_variables = mutableMapOf<LPName, Pair<MPVariable, LPVariable<*>>>()
+    private val known_constraints = mutableMapOf<LPName, Pair<MPConstraint, LPConstraint>>()
     private var objective: MPObjective? = null
 
     context(MPSolver)

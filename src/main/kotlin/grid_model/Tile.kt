@@ -1,6 +1,6 @@
 package grid_model
 
-import model.SegName
+import model.LPName
 
 /**
  * A tile is the atomic constituent of a grid cell.
@@ -15,5 +15,5 @@ interface Tile {
     /**
      * A slightly more verbose name to avoid overloading on enum's `name`.
      */
-    fun tile_name(): SegName
+    fun tile_name(): LPName
 }

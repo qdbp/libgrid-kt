@@ -1,5 +1,5 @@
 package kulp.variables
 
-import model.SegName
+import model.LPName
 
-class LPNonnegativeReal(name: SegName) : LPReal(name, 0.0, null)
+class LPNonnegativeReal(name: LPName) : LPReal(name, 0.0, null)

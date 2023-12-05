@@ -7,20 +7,20 @@ import kulp.adapters.ORToolsAdapter
 import kulp.constraints.LP_EQ
 import kulp.variables.LPBinary
 import mdspan.*
-import model.SegName
+import model.LPName
 import model.sn
 import org.junit.jupiter.api.Test
 
 private object SudokuProblem : LPProblem() {
 
-    val variables: Map<SegName, LPBinary> =
+    val variables: Map<LPName, LPBinary> =
         ndindex(9, 9, 9).associate {
             val name = "z".sn.refine(it[0], it[1], it[2])
             name to LPBinary(name)
         }
 
     override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
-        return Pair(RealAffExpr(), LPObjectiveSense.Minimize)
+        return Pair(RealAffExpr(0.0), LPObjectiveSense.Minimize)
     }
 
     val initial_list =
@@ -96,7 +96,7 @@ private object SudokuProblem : LPProblem() {
         return renderables
     }
 
-    override val name: SegName = "SudokuProblem".sn
+    override val name: LPName = "SudokuProblem".sn
 }
 
 class TestSudoku {

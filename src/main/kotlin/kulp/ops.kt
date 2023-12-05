@@ -3,7 +3,7 @@ package kulp
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
-import model.SegName
+import model.LPName
 
 // genericized operations on numbers
 inline fun <reified N : Number> KClass<N>.zero(): N {
@@ -64,7 +64,7 @@ inline operator fun <reified N : Number> N.minus(other: N): N {
 // int specializations
 @Suppress("UNCHECKED_CAST")
 inline fun <reified N : Number> Iterable<LPAffExpr<N>>.lp_sum(): LPAffExpr<N> {
-    val sum_terms: MutableMap<SegName, N> = mutableMapOf()
+    val sum_terms: MutableMap<LPName, N> = mutableMapOf()
     var constant = (N::class::zero)()
 
     for (term in this) {

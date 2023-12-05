@@ -1,7 +1,7 @@
 package factorio
 
 import grid_model.Tile
-import model.SegName
+import model.LPName
 
 enum class Orientation {
     North,
@@ -16,7 +16,7 @@ enum class BeltColor : Tile {
     Blue;
 
     // TODO can we abstract an enum base class that does this automatically, somehow?
-    override fun tile_name(): SegName = SegName(this.name)
+    override fun tile_name(): LPName = LPName(this.name)
 }
 
 enum class BeltInput(orientation: Orientation) : Tile {
@@ -25,7 +25,7 @@ enum class BeltInput(orientation: Orientation) : Tile {
     South(Orientation.South),
     West(Orientation.West);
 
-    override fun tile_name(): SegName = SegName(this.name)
+    override fun tile_name(): LPName = LPName(this.name)
 }
 
 enum class BeltOutput(orientation: Orientation) : Tile {
@@ -34,5 +34,5 @@ enum class BeltOutput(orientation: Orientation) : Tile {
     South(Orientation.South),
     West(Orientation.West);
 
-    override fun tile_name(): SegName = SegName(this.name)
+    override fun tile_name(): LPName = LPName(this.name)
 }

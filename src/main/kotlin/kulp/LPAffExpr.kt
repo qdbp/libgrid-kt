@@ -1,7 +1,7 @@
 package kulp
 
 import kulp.transforms.Constrained
-import model.SegName
+import model.LPName
 
 /**
  * Represents an affine expression of terms of the following form:
@@ -12,7 +12,7 @@ import model.SegName
  */
 interface LPAffExpr<N : Number> {
 
-    val terms: Map<SegName, N>
+    val terms: Map<LPName, N>
     val constant: N
 
     // override fun as_expr(): LPAffineExpression<N> = this
@@ -49,8 +49,15 @@ interface LPAffExpr<N : Number> {
         return this.relax() * other.relax()
     }
 
-    /** Returns a Constrain-wrapped variable that is constrained to equal this expression. */
-    fun reify(name: SegName): Constrained<N>
+    /** Returns a Constrain-wrapped variable that is constrained to equal this expression.
+     *
+     *  Cost:
+     *  - 1 output variable of the same type as the expression
+     *  - 2 constraints for the EQ pin
+     *  - a pinch of your dignity as a 1337 haxx0r for not being able to get away with using the
+     *    expression directly
+     * */
+    fun reify(name: LPName): Constrained<N>
 
     /**
      * Evaluates the expression as written to a number outside a solver context
@@ -60,5 +67,5 @@ interface LPAffExpr<N : Number> {
      *
      * Should return null when the expression is not fully defined by the assignment.
      */
-    fun evaluate(assignment: Map<SegName, N>): N?
+    fun evaluate(assignment: Map<LPName, N>): N?
 }

@@ -1,9 +1,9 @@
 package kulp.variables
 
 import kulp.IntAffExpr
-import model.SegName
+import model.LPName
 
-class LPBinary(name: SegName) : LPInteger(name, 0, 1) {
+class LPBinary(name: LPName) : LPInteger(name, 0, 1) {
     operator fun not(): IntAffExpr = IntAffExpr(mapOf(this.name to -1), 1)
 
     infix fun and(other: LPBinary): IntAffExpr =

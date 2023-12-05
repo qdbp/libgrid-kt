@@ -1,15 +1,12 @@
 package test_kulp.test_transforms
 
-import com.google.ortools.Loader
-import com.google.ortools.linearsolver.MPSolver
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kulp.*
-import kulp.adapters.ORToolsAdapter
 import kulp.transforms.IntClip
 import kulp.variables.LPInteger
-import model.SegName
+import model.LPName
 import test_kulp.ScipTester
 
 private class IntClipTestProblem(
@@ -19,7 +16,7 @@ private class IntClipTestProblem(
     val pin_x: Int? = null
 ) : LPProblem() {
 
-    val x = LPInteger(SegName("x"), pin_x, pin_x)
+    val x = LPInteger(LPName("x"), pin_x, pin_x)
     val yt = IntClip(x, lb, ub)
 
     override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
@@ -30,8 +27,8 @@ private class IntClipTestProblem(
         return listOfNotNull(x, yt)
     }
 
-    override val name: SegName
-        get() = SegName("IntClipProblem")
+    override val name: LPName
+        get() = LPName("IntClipProblem")
 }
 
 class TestIntClip: ScipTester() {

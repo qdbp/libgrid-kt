@@ -12,10 +12,10 @@ import kulp.constraints.LP_LEQ
 import kulp.times
 import kulp.variables.LPInteger
 import mdspan.NDSpan
-import model.SegName
+import model.LPName
 import nullable_fold
 
-private fun make_output_var(name: SegName, vars: NDSpan<LPInteger>, which: String): LPInteger {
+private fun make_output_var(name: LPName, vars: NDSpan<LPInteger>, which: String): LPInteger {
     return LPInteger(
         name.refine(which),
         vars.map { it.lb }.nullable_fold(::max),
@@ -32,29 +32,27 @@ class IntMax private constructor(output: LPInteger, val vars: NDSpan<LPInteger>)
     LPTransform<Int>(output) {
 
     constructor(
-        name: SegName,
+        name: LPName,
         vars: NDSpan<LPInteger>
     ) : this(make_output_var(name, vars, "max"), vars)
 
-    constructor(name: SegName, vars: List<LPInteger>) : this(name, NDSpan(vars))
+    constructor(name: LPName, vars: List<LPInteger>) : this(name, NDSpan(vars))
 
     private val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
 
-    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
         val renderables: MutableList<LPRenderable> = mutableListOf(selector)
         // standard max formulation:
         // for all i: y >= x_i
         // exists j : y <= x_j
         // selector picks out j
         for (ix in vars.indices) {
-            renderables.add(LP_GEQ(name.refine("max_gt").refine(ix), output, vars[ix]))
-            renderables.add(
-                LP_LEQ(
-                    name.refine("max_le").refine(ix),
-                    output,
-                    vars[ix] + ctx.bigM.roundToInt() * !selector[ix]
+            with(+ix) {
+                renderables.add(LP_GEQ(+"ge_bind", output, vars[ix]))
+                renderables.add(
+                    LP_LEQ(+"le_bind", output, vars[ix] + ctx.bigM.roundToInt() * !selector[ix])
                 )
-            )
+            }
         }
         return renderables
     }
@@ -69,29 +67,27 @@ class IntMin private constructor(output: LPInteger, val vars: NDSpan<LPInteger>)
     LPTransform<Int>(output) {
 
     constructor(
-        name: SegName,
+        name: LPName,
         vars: NDSpan<LPInteger>
     ) : this(make_output_var(name, vars, "min"), vars)
 
-    constructor(name: SegName, vars: List<LPInteger>) : this(name, NDSpan(vars))
+    constructor(name: LPName, vars: List<LPInteger>) : this(name, NDSpan(vars))
 
     private val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
 
-    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
         // standard min formulation:
         // for all i: y <= x_i
         // exists j : y >= x_j
         // selector picks out j
         val renderables: MutableList<LPRenderable> = mutableListOf(selector)
         for (ix in vars.indices) {
-            renderables.add(LP_LEQ(name.refine("le_input").refine(ix), output, vars[ix]))
-            renderables.add(
-                LP_GEQ(
-                    name.refine("ge_bind").refine(ix),
-                    output,
-                    vars[ix] - ctx.bigM.roundToInt() * !selector[ix]
+            with(+ix) {
+                renderables.add(LP_LEQ(+"le_bind", output, vars[ix]))
+                renderables.add(
+                    LP_GEQ(+"ge_bind", output, vars[ix] - ctx.bigM.roundToInt() * !selector[ix])
                 )
-            )
+            }
         }
         return renderables
     }

@@ -1,6 +1,6 @@
 package grid_model
 
-import grid_model.kulp_adapters.PointTileConstraint
+import grid_model.kulp_adapters.PointTilePredicate
 
 /**
  * Absolutely-located tile constraints are the bridge class between the abstract formulation of
@@ -8,7 +8,7 @@ import grid_model.kulp_adapters.PointTileConstraint
  */
 data class AbsoluteTileConstraint(
     val position: List<Int>,
-    val constraint: PointTileConstraint,
+    val constraint: PointTilePredicate,
 ) {
     // TODO : LPRenderable
 
@@ -18,7 +18,7 @@ data class AbsoluteTileConstraint(
  * This class has an identical representation to SpatialConstraint, but is distinct to avoid
  * confusion between the two.
  */
-data class LocalTileConstraint(val rel_coords: List<Int>, val constraint: PointTileConstraint) {
+data class LocalTileConstraint(val rel_coords: List<Int>, val constraint: PointTilePredicate) {
     fun anchor(position: List<Int>): AbsoluteTileConstraint {
         return AbsoluteTileConstraint(
             position = position.zip(rel_coords).map { (a, b) -> a + b },

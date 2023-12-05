@@ -5,7 +5,7 @@ import kulp.constraints.LP_EQ
 import kulp.constraints.LP_GEQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
-import model.SegName
+import model.LPName
 
 // TODO can we reify constraints in a generic way?
 /**
@@ -20,21 +20,21 @@ import model.SegName
  */
 // TODO can we be more efficient?
 class ReifiedEQ<N : Number>
-private constructor(val z_eq: LPBinary, val rhs: LPAffExpr<N>, val lhs: LPAffExpr<N>) :
+private constructor(z_eq: LPBinary, val rhs: LPAffExpr<N>, val lhs: LPAffExpr<N>) :
     LPTransform<Int>(z_eq) {
 
     constructor(
-        name: SegName,
+        name: LPName,
         rhs: LPAffExpr<N>,
         lhs: LPAffExpr<N>
     ) : this(LPBinary(name), rhs, lhs)
 
-    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
         val M = ctx.intM
         val diff = rhs - lhs
 
-        val z_diff_neg = LPBinary(name.refine("z_dlz")) // diff less than zero
-        val z_diff_pos = LPBinary(name.refine("z_dgz")) // diff greater than zero
+        val z_diff_neg = LPBinary(+"z_dlz") // diff less than zero
+        val z_diff_pos = LPBinary(+"z_dgz") // diff greater than zero
 
         val constraints =
             listOf(

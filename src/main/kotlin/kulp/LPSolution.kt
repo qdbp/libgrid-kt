@@ -1,6 +1,6 @@
 package kulp
 
-import model.SegName
+import model.LPName
 
 abstract class LPSolution {
 
@@ -8,7 +8,5 @@ abstract class LPSolution {
 
     abstract fun objective_value(): Double
 
-    abstract fun value_of(name: SegName): Double?
-
-    fun value_of(v: LPVariable<*>): Double? = value_of(v.name)
+    abstract fun value_of(name: LPName): Double?
 }

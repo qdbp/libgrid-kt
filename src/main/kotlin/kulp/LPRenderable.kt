@@ -1,35 +1,33 @@
 package kulp
 
-import model.SegName
+import model.LPName
 
 /**
- * A renderable is an entity (in practise, a variable or constraint) that ultimately has a
- * representation in the language of a MIP solver. Note, that this representation may be compound
- * (e.g. a variable may be represented as a sum of other variables with constraints).
+ * Base class for LP objects that can be referred to by name.
  *
- * The `render` method returns a list of constituent renderables, which will be expanded recursively
- * until all renderables are primitive.
- *
- * A Renderable is primitive (with respect to a given context) if it is directly representable in
- * the language of the solver.
+ * Each such object should have a name representable in the underlying model, as well as implement a
+ * predicate which is true if this object is "primitive" with respect to a given mode of
+ * computation.
  */
 interface LPRenderable {
-    val name: SegName
+    /**
+     * The partial name of this object.
+     *
+     * We reserve the term "name" to refer to a fully qualified name (i.e. a path from the root of
+     * the model to this object). Stems will not be unique, but names will be.
+     */
+    val name: LPName
 
     /**
-     * Returns true if this renderable is primitive (i.e. will be handled directly by adapters).
-     * Non-primitive renderables will be recursively rendered. Implementers must make sure that this
-     * will eventually terminate.
+     * If this object is not deemed primitive for the given context, this method should return a
+     * decomposition of this object into primitive objects.
      *
-     * We pass the context because whether or not a renderable is primitive may depend on the
-     * capabilities of the solver or of the computational environment, which are encapsulated in the
-     * context.
+     * The parent object's name will be made available as the receiver of this method for convenient
+     * sub-name formation.
      */
-    fun is_primitive(ctx: MipContext): Boolean
-
-    // TODO need to break this up into:
-    // -- own variables: List<PrimitiveLPVariable>
-    // -- own constraints: List<LPConstraint>
-    // -- owned children: List<LPRenderable>
-    fun render(ctx: MipContext): List<LPRenderable>
+    fun LPName.decompose(ctx: MipContext): List<LPRenderable> {
+        throw NotImplementedError(
+            "${this.javaClass} was not primitive for $ctx, but did not implement decompose()"
+        )
+    }
 }

@@ -2,12 +2,12 @@ package kulp.transforms
 
 import kotlin.math.roundToInt
 import kulp.*
-import kulp.constraints.LPConstraint
+import kulp.LPConstraint
 import kulp.constraints.LP_GEQ
 import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
 import kulp.variables.LPInteger
-import model.SegName
+import model.LPName
 
 /**
  * Returns a variable that is constrained to equal clip(expr, lb, ub) Cost:
@@ -25,13 +25,13 @@ private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, 
     LPTransform<Int>(y), LPAffExpr<Int> {
 
     companion object {
-        private fun make_output_var(name: SegName, lb: Int?, ub: Int?): LPInteger {
+        private fun make_output_var(name: LPName, lb: Int?, ub: Int?): LPInteger {
             return LPInteger(name.refine("y"), lb, ub)
         }
     }
 
     constructor(x: LPInteger, lb: Int?, ub: Int?) : this(make_output_var(x.name, lb, ub), x, lb, ub)
-    constructor(name: SegName, x: LPAffExpr<Int>, lb: Int?, ub: Int?) : this(make_output_var(name, lb, ub), x, lb, ub)
+    constructor(name: LPName, x: LPAffExpr<Int>, lb: Int?, ub: Int?) : this(make_output_var(name, lb, ub), x, lb, ub)
 
     val z_lb = clip_lb?.let { LPBinary(name.refine("z_lb")) }
     val z_ub = clip_ub?.let { LPBinary(name.refine("z_ub")) }
@@ -96,9 +96,7 @@ private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, 
         return out
     }
 
-    override fun is_primitive(ctx: MipContext): Boolean = false
-
-    override fun render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
         return get_constraints_for_M(ctx.bigM) + listOfNotNull(z_lb, z_ub)
     }
 }

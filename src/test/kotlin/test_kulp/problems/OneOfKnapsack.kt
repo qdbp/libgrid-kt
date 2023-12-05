@@ -6,7 +6,7 @@ import kulp.*
 import kulp.adapters.ORToolsAdapter
 import kulp.aggregates.LPOneOfN
 import kulp.constraints.LP_LEQ
-import model.SegName
+import model.LPName
 import model.sn
 import kotlin.test.Test
 
@@ -17,7 +17,7 @@ import kotlin.test.Test
  * This tests `LPOneOfN`
  */
 private object OneOfKnapsackProblem : LPProblem() {
-    override val name: SegName = "OneOfKnapsackProblem".sn
+    override val name: LPName = "OneOfKnapsackProblem".sn
 
     const val weight_limit: Double = 100.0
     const val num_slots = 5

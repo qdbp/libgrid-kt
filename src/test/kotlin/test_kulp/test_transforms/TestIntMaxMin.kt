@@ -5,7 +5,7 @@ import kulp.constraints.LP_EQ
 import kulp.transforms.IntMax
 import kulp.transforms.IntMin
 import kulp.variables.LPInteger
-import model.SegName
+import model.LPName
 import model.sn
 import test_kulp.ScipTester
 import kotlin.test.Test
@@ -38,7 +38,7 @@ private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : 
         return xs + x_pins + listOf(yt)
     }
 
-    override val name: SegName = "IntMaxMinProblem".sn
+    override val name: LPName = "IntMaxMinProblem".sn
 }
 
 class TestIntMaxMin: ScipTester() {

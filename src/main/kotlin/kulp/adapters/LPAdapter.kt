@@ -1,9 +1,9 @@
 package kulp.adapters
 
 import kulp.*
-import kulp.constraints.LPConstraint
+import kulp.LPConstraint
 import kulp.LPVariable
-import model.SegName
+import model.LPName
 
 /**
  * Base class for adapters that map our LPProblem to a concrete third-party backend.
@@ -30,13 +30,15 @@ abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: 
     context(Solver)
     fun init() {
         val primtives = problem.render(ctx)
-        val already_consumed = mutableSetOf<SegName>()
+        val already_consumed = mutableSetOf<LPName>()
 
         // first, consume all variables
         val variables = primtives.filterIsInstance<LPVariable<*>>()
         for (variable in variables) {
-            if (!variable.is_primitive(ctx)) {
-                throw Exception("Non-primitive variable $variable found in problem render. Bug!")
+            if (ctx.check_support(variable) != RenderSupport.PrimitiveVariable) {
+                throw Exception(
+                    "Non-primitive variable $variable found in problem render. Bug!"
+                )
             }
             if (variable.name !in already_consumed) {
                 consume_variable(variable)
@@ -47,7 +49,7 @@ abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: 
         // then, consume all constraints
         val constraints = primtives.filterIsInstance<LPConstraint>()
         for (constraint in constraints) {
-            if (!constraint.is_primitive(ctx)) {
+            if (ctx.check_support(constraint) != RenderSupport.PrimitiveConstraint) {
                 throw Exception(
                     "Non-primitive constraint $constraint found in problem render. Bug!"
                 )

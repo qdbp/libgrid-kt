@@ -1,7 +1,7 @@
 package kulp
 
 import kulp.variables.*
-import model.SegName
+import model.LPName
 
 /**
  * A variable is an affine expression with a particular form, that has a name and therefore a
@@ -19,7 +19,7 @@ interface LPVariable<N : Number> : LPAffExpr<N>, LPRenderable {
     val ub: N?
 
     @Suppress("UNCHECKED_CAST")
-    fun copy_as(name: SegName): LPVariable<N> =
+    fun copy_as(name: LPName): LPVariable<N> =
         when (this) {
             is LPReal -> LPReal(name)
             is LPBinary -> LPBinary(name)
