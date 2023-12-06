@@ -3,55 +3,61 @@ package kulp.transforms
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kulp.LPRenderable
-import kulp.LPTransform
-import kulp.MipContext
+import kulp.*
 import kulp.aggregates.LPOneOfN
-import kulp.constraints.LP_GEQ
-import kulp.constraints.LP_LEQ
-import kulp.times
 import kulp.variables.LPInteger
 import mdspan.NDSpan
 import model.LPName
 import nullable_fold
 
-private fun make_output_var(name: LPName, vars: NDSpan<LPInteger>, which: String): LPInteger {
-    return LPInteger(
-        name.refine(which),
-        vars.map { it.lb }.nullable_fold(::max),
-        vars.map { it.ub }.nullable_fold(::min)
-    )
-}
-
 /**
- * Returns a variable always equal to the maximum of the input variables.
- *
- * Auxiliaries: |vars| 1-of-N binary set Outputs: 1 Integer output variable
+ * Private base class for IntMin and IntMax.
  */
-class IntMax private constructor(output: LPInteger, val vars: NDSpan<LPInteger>) :
-    LPTransform<Int>(output) {
+sealed class IntMinMax(name: LPName, val vars: NDSpan<LPInteger>, private val which: Which) :
+    LPTransform<Int>(make_output_var(name, vars, which)) {
 
-    constructor(
-        name: LPName,
-        vars: NDSpan<LPInteger>
-    ) : this(make_output_var(name, vars, "max"), vars)
+    companion object {
+        private fun make_output_var(
+            name: LPName,
+            vars: NDSpan<LPInteger>,
+            which: Which
+        ): LPInteger {
+            return LPInteger(
+                name.refine(which.name),
+                vars.map { it.lb }.nullable_fold(::max),
+                vars.map { it.ub }.nullable_fold(::min)
+            )
+        }
+    }
 
-    constructor(name: LPName, vars: List<LPInteger>) : this(name, NDSpan(vars))
+    protected enum class Which {
+        min,
+        max
+    }
 
-    private val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
+    override fun LPName.render_auxiliaries(ctx: LPContext): List<LPRenderable> {
+        require(ctx is BigMCapability)
+        val M = ctx.bigM.roundToInt()
 
-    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
+        val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
         val renderables: MutableList<LPRenderable> = mutableListOf(selector)
+
         // standard max formulation:
         // for all i: y >= x_i
         // exists j : y <= x_j
         // selector picks out j
         for (ix in vars.indices) {
             with(+ix) {
-                renderables.add(LP_GEQ(+"ge_bind", output, vars[ix]))
-                renderables.add(
-                    LP_LEQ(+"le_bind", output, vars[ix] + ctx.bigM.roundToInt() * !selector[ix])
-                )
+                when (which) {
+                    Which.max -> {
+                        renderables += output ge vars[ix] named "ge_bind"
+                        renderables += output le vars[ix] + M * !selector[ix] named "le_bind"
+                    }
+                    Which.min -> {
+                        renderables += output le vars[ix] named "le_bind"
+                        renderables += output ge vars[ix] - M * !selector[ix] named "ge_bind"
+                    }
+                }
             }
         }
         return renderables
@@ -63,32 +69,15 @@ class IntMax private constructor(output: LPInteger, val vars: NDSpan<LPInteger>)
  *
  * Auxiliaries: |vars| 1-of-N binary set Outputs: 1 Integer output variable
  */
-class IntMin private constructor(output: LPInteger, val vars: NDSpan<LPInteger>) :
-    LPTransform<Int>(output) {
-
-    constructor(
-        name: LPName,
-        vars: NDSpan<LPInteger>
-    ) : this(make_output_var(name, vars, "min"), vars)
-
+class IntMin(name: LPName, vars: NDSpan<LPInteger>) : IntMinMax(name, vars, Which.min) {
     constructor(name: LPName, vars: List<LPInteger>) : this(name, NDSpan(vars))
+}
 
-    private val selector = LPOneOfN(name.refine("bind_sel"), vars.shape)
-
-    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
-        // standard min formulation:
-        // for all i: y <= x_i
-        // exists j : y >= x_j
-        // selector picks out j
-        val renderables: MutableList<LPRenderable> = mutableListOf(selector)
-        for (ix in vars.indices) {
-            with(+ix) {
-                renderables.add(LP_LEQ(+"le_bind", output, vars[ix]))
-                renderables.add(
-                    LP_GEQ(+"ge_bind", output, vars[ix] - ctx.bigM.roundToInt() * !selector[ix])
-                )
-            }
-        }
-        return renderables
-    }
+/**
+ * Returns a variable always equal to the maximum of the input variables.
+ *
+ * Auxiliaries: |vars| 1-of-N binary set Outputs: 1 Integer output variable
+ */
+class IntMax(name: LPName, vars: NDSpan<LPInteger>) : IntMinMax(name, vars, Which.max) {
+    constructor(name: LPName, vars: List<LPInteger>) : this(name, NDSpan(vars))
 }

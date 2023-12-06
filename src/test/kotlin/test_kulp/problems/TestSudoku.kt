@@ -4,7 +4,7 @@ import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver
 import kulp.*
 import kulp.adapters.ORToolsAdapter
-import kulp.constraints.LP_EQ
+import kulp.constraints.LP_EQZ
 import kulp.variables.LPBinary
 import mdspan.*
 import model.LPName
@@ -64,32 +64,31 @@ private object SudokuProblem : LPProblem() {
         // exclusivity constraint
         for ((row, col) in ndindex(9, 9)) {
             val slice = span.slice(ALL, IDX(row), IDX(col))
-            renderables.add(LP_EQ("exactly_one_at".sn.refine(row, col), slice.lp_sum(), 1))
+            renderables.add(LP_EQZ("exactly_one_at".sn.refine(row, col), slice.lp_sum() - 1))
         }
         // one per col
         for ((col, digit) in ndindex(9, 9)) {
             val slice = span.slice(IDX(digit), ALL, IDX(digit))
-            renderables.add(LP_EQ("one_per_col".sn.refine(digit, col), slice.lp_sum(), 1))
+            renderables.add(LP_EQZ("one_per_col".sn.refine(digit, col), slice.lp_sum() - 1))
         }
         // one per row
         for ((row, digit) in ndindex(9, 9)) {
             val slice = span.slice(IDX(digit), IDX(row), ALL)
-            renderables.add(LP_EQ("one_per_row".sn.refine(digit, row), slice.lp_sum(), 1))
+            renderables.add(LP_EQZ("one_per_row".sn.refine(digit, row), slice.lp_sum() - 1))
         }
         // one per box
         for ((box, digit) in ndindex(9, 9)) {
             val start_row = 3 * (box / 3)
             val start_col = 3 * (box % 3)
-            val slice = span.slice(
-                IDX(digit),
-                SLC(start_row, start_row + 3),
-                SLC(start_col, start_col + 3)
-            )
-            renderables.add(LP_EQ("one_per_box".sn.refine(digit, box), slice.lp_sum(), 1))
+            val slice =
+                span.slice(IDX(digit), SLC(start_row, start_row + 3), SLC(start_col, start_col + 3))
+            renderables.add(LP_EQZ("one_per_box".sn.refine(digit, box), slice.lp_sum() - 1))
         }
 
         for ((digit, row, col) in initial_list) {
-            renderables.add(LP_EQ("initial".sn.refine(digit, row, col), span[digit - 1, row - 1, col - 1], 1))
+            renderables.add(
+                LP_EQZ("initial".sn.refine(digit, row, col), span[digit - 1, row - 1, col - 1] - 1)
+            )
         }
 
         renderables.addAll(variables.values)

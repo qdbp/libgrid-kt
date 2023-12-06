@@ -1,7 +1,5 @@
 package grid_model
 
-import grid_model.kulp_adapters.PointTilePredicate
-
 /**
  * An extent is a set of local constraints imposed on tiles by the existence of an entity.
  *
@@ -39,7 +37,7 @@ abstract class AbstractPointExtent<out T : Tile> : Extent {
         return listOf(LocalTileConstraint(origin(), origin_constraint()))
     }
 
-    abstract fun origin_constraint(): PointTilePredicate
+    abstract fun origin_constraint(): Any // fixme PointTilePredicate
 
     /**
      * Replicates the origin constraint over points in the given shape.

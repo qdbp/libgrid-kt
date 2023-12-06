@@ -1,6 +1,8 @@
 package kulp.variables
 
-import kulp.*
+import kulp.IntAffExpr
+import kulp.LPAffExpr
+import kulp.LPDomain
 import model.LPName
 
 open class LPInteger(

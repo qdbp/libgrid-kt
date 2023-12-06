@@ -2,7 +2,7 @@ package kulp.aggregates
 
 import kulp.LPAggregate
 import kulp.LPRenderable
-import kulp.constraints.LP_EQ
+import kulp.constraints.LP_EQZ
 import kulp.lp_sum
 import kulp.variables.LPBinary
 import mdspan.prod
@@ -29,6 +29,6 @@ class LPOneOfN(name: LPName, vars: List<LPBinary>, shape: List<Int>) :
 
     override fun LPName.render_interactions(): List<LPRenderable> {
         val sum = this@LPOneOfN.lp_sum()
-        return listOf(LP_EQ(+"sums_to_1", sum, 1))
+        return listOf(sum eq 1 named "sums_to_1")
     }
 }

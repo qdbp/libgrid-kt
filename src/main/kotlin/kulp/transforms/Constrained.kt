@@ -1,9 +1,9 @@
 package kulp.transforms
 
+import kulp.LPConstraint
+import kulp.LPContext
 import kulp.LPRenderable
 import kulp.LPTransform
-import kulp.MipContext
-import kulp.LPConstraint
 import kulp.variables.PrimitiveLPVariable
 import model.LPName
 
@@ -19,7 +19,7 @@ class Constrained<N : Number>(x: PrimitiveLPVariable<N>, val constraints: List<L
         vararg constraints: LPConstraint
     ) : this(x, constraints.toList())
 
-    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> = constraints
+    override fun LPName.render_auxiliaries(ctx: LPContext): List<LPRenderable> = constraints
 
     // TODO currently we do not check if these constraints have anything at all do to with the
     //  variable we're wrapping. should we?

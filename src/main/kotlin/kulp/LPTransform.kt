@@ -28,7 +28,7 @@ abstract class LPTransform<N : Number>(
     protected val output: PrimitiveLPVariable<N>
 ) : LPVariable<N> by output {
 
-    final override fun LPName.decompose(ctx: MipContext): List<LPRenderable> {
+    final override fun LPName.decompose(ctx: LPContext): List<LPRenderable> {
         with(name) {
             return render_auxiliaries(ctx) + output
         }
@@ -38,5 +38,5 @@ abstract class LPTransform<N : Number>(
      * Returns a list of auxiliary variables and constraints that are required to represent this
      * transformation.
      */
-    abstract fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable>
+    abstract fun LPName.render_auxiliaries(ctx: LPContext): List<LPRenderable>
 }

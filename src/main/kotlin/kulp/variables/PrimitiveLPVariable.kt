@@ -3,6 +3,7 @@ package kulp.variables
 import kulp.LPConstraint
 import kulp.LPVariable
 import kulp.transforms.Constrained
+import model.LPName
 
 /**
  * Interface for primitive variables that have a simple representation in the output model
@@ -19,4 +20,9 @@ sealed class PrimitiveLPVariable<N : Number> : LPVariable<N> {
         return Constrained(this, constraints)
     }
 
+    infix fun requiring(constraint: LPConstraint): Constrained<N> = requiring(listOf(constraint))
+
+    infix fun requiring(op: (PrimitiveLPVariable<N>) -> LPConstraint): Constrained<N> {
+        return Constrained(this, op(this))
+    }
 }

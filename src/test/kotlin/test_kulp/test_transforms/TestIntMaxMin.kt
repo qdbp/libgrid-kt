@@ -1,15 +1,14 @@
 package test_kulp.test_transforms
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kulp.*
-import kulp.constraints.LP_EQ
 import kulp.transforms.IntMax
 import kulp.transforms.IntMin
 import kulp.variables.LPInteger
 import model.LPName
 import model.sn
 import test_kulp.ScipTester
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : LPProblem() {
 
@@ -22,12 +21,12 @@ private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : 
 
     val x_pins =
         listOf(
-            LP_EQ("x1pin".sn, xs[0], -3.0),
-            LP_EQ("x2pin".sn, xs[1], 5.0),
-            LP_EQ("x3pin".sn, xs[2], 7.0),
+            xs[0] eq -3.0 rooted "x1pin",
+            xs[1] eq 5.0 rooted "x2pin",
+            xs[2] eq 7.0 rooted "x3pin",
         )
 
-    val yt = if (do_max) IntMax("max".sn, xs) else IntMin("min".sn, xs)
+    val yt = if (do_max) IntMax("y".sn, xs) else IntMin("min".sn, xs)
 
     override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
         return if (do_minimize) Pair(yt, LPObjectiveSense.Minimize)
@@ -41,7 +40,7 @@ private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : 
     override val name: LPName = "IntMaxMinProblem".sn
 }
 
-class TestIntMaxMin: ScipTester() {
+class TestIntMaxMin : ScipTester() {
 
     @Test
     fun testMaxMinimize() {
@@ -60,7 +59,7 @@ class TestIntMaxMin: ScipTester() {
     }
 
     @Test
-    fun testMinMinimizd() {
+    fun testMinMinimize() {
         val prob = IntMaxMinProblem(do_max = false, do_minimize = true)
         val solution = solveProblem(prob)
         assertEquals(-3.0, solution.objective_value())

@@ -17,7 +17,7 @@ abstract class LPAggregate<T : LPRenderable>(
     shape: List<Int>
 ) : NDSpan<T>(vars, shape), LPRenderable {
 
-    final override fun LPName.decompose(ctx: MipContext): List<LPRenderable> {
+    final override fun LPName.decompose(ctx: LPContext): List<LPRenderable> {
         val base_renderables: List<T> = (this@LPAggregate).toList()
         return base_renderables + with(name) { render_interactions() }
     }

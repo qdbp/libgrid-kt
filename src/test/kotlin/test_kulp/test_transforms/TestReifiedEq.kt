@@ -3,8 +3,8 @@ package test_kulp.test_transforms
 import kotlin.test.assertEquals
 import kulp.*
 import kulp.LPConstraint
-import kulp.constraints.LP_EQ
-import kulp.transforms.ReifiedEQ
+import kulp.constraints.LP_EQZ
+import kulp.transforms.IntEQZWitness
 import kulp.variables.LPInteger
 import model.LPName
 import model.sn
@@ -19,7 +19,7 @@ private class ReifiedEqProblem(
     var extra_renderables: MutableList<LPRenderable> = mutableListOf(),
 ) : LPProblem() {
 
-    val z = ReifiedEQ("z".sn, lhs, rhs)
+    val z = IntEQZWitness("z".sn, lhs, rhs)
 
     override fun get_objective(): Pair<LPAffExpr<Int>, LPObjectiveSense> {
         return objective to LPObjectiveSense.Maximize
@@ -62,7 +62,7 @@ class TestReifiedEq : ScipTester() {
         val objective = x + y
 
         val prob = ReifiedEqProblem(x, y, objective, extra_renderables = mutableListOf(x, y))
-        prob.constraints.add(LP_EQ("force_equal".sn, prob.z, 1.0))
+        prob.constraints.add(prob.z eq 1 rooted "force_equal")
 
         val solution = solveProblem(prob)
 
@@ -79,7 +79,7 @@ class TestReifiedEq : ScipTester() {
         val objective = y - x
 
         val prob = ReifiedEqProblem(x, y, objective, extra_renderables = mutableListOf(x, y))
-        prob.constraints.add(LP_EQ("force_equal".sn, prob.z, 1.0))
+        prob.constraints.add(prob.z eq 1 rooted "force_equal")
 
         val solution = solveProblem(prob)
 
@@ -103,7 +103,7 @@ class TestReifiedEq : ScipTester() {
         val prob =
             ReifiedEqProblem(x + w, y - w, objective, extra_renderables = mutableListOf(x, y, w))
 
-        prob.constraints.add(LP_EQ("force_equal".sn, prob.z, 1.0))
+        prob.constraints.add(prob.z eq 1 rooted "force_equal")
 
         val solution = solveProblem(prob)
 

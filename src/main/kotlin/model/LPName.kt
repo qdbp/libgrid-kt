@@ -1,12 +1,15 @@
 package model
 
+import kulp.LPRenderable
+import kulp.UnboundRenderable
+
 const val LP_NAMESPACE_SEP = "::"
 
 val String.sn
     get() = LPName(this)
 
 /** A Segmented Name: a wrapper around a basic "path-like" segmented object name. */
-class LPName(private val segments: List<String>) : List<String> by segments {
+class LPName(private val segments: List<String>) {
     constructor(vararg segments: String) : this(segments.toList())
 
     fun refine(vararg s: String): LPName {
@@ -46,4 +49,14 @@ class LPName(private val segments: List<String>) : List<String> by segments {
         if (other !is LPName) return false
         return segments == other.segments
     }
+
+    infix fun lp_bind(rnd: UnboundRenderable<*>): LPRenderable {
+        return rnd.bind(this)
+    }
+}
+
+context(LPName)
+infix fun String.lp_bind(rnd: UnboundRenderable<*>): LPRenderable {
+    return this@LPName.refine(this).lp_bind(rnd)
+
 }

@@ -6,8 +6,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kulp.*
 import kulp.adapters.ORToolsAdapter
-import kulp.constraints.LP_EQ
-import kulp.constraints.LP_LEQ
+import kulp.constraints.LP_BND
+import kulp.constraints.LP_EQZ
+import kulp.constraints.LP_LEZ
 import kulp.variables.LPNonnegativeReal
 import kulp.variables.LPReal
 import model.sn
@@ -89,24 +90,27 @@ private object WhiskasProblem : LPProblem() {
         renderables.addAll(variables)
 
         // total weight sums to 100g
-        renderables.add(LP_EQ("sums_to_1".sn, variables.lp_sum(), 100.0))
+        renderables.add(LP_EQZ("sums_to_1".sn, variables.lp_sum() - 100.0))
 
         // for each of the nutrients, the total amount of that nutrient provided by the food
         for (nutrient in listOf("protein", "fat", "fibre", "salt").map { it.sn }) {
             val nutrient_map = nutritional_provision[nutrient]!!
             val total_nutrient = variables.associateWith { nutrient_map[it.name]!! }.lp_dot()
             renderables.add(
-                LP_LEQ(
-                    nutrient.refine("met"),
-                    min_nutrients[nutrient] ?: 0.0,
-                    total_nutrient
+                LP_BND(
+                    nutrient.refine("in_range"),
+                    total_nutrient,
+                    min_nutrients[nutrient],
+                    max_nutrients[nutrient]
                 )
             )
             renderables.add(
-                LP_LEQ(
+                LP_LEZ(nutrient.refine("met"), (min_nutrients[nutrient] ?: 0.0) - total_nutrient)
+            )
+            renderables.add(
+                LP_LEZ(
                     nutrient.refine("not_exceeded"),
-                    total_nutrient,
-                    max_nutrients[nutrient] ?: Double.POSITIVE_INFINITY
+                    total_nutrient - (max_nutrients[nutrient] ?: Double.POSITIVE_INFINITY)
                 )
             )
         }

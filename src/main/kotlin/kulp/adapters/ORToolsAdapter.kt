@@ -6,8 +6,7 @@ import com.google.ortools.linearsolver.MPSolver
 import com.google.ortools.linearsolver.MPSolver.ResultStatus
 import com.google.ortools.linearsolver.MPVariable
 import kulp.*
-import kulp.LPConstraint
-import kulp.constraints.LP_LEQ
+import kulp.constraints.LP_LEZ
 import kulp.variables.LPBinary
 import kulp.variables.LPInteger
 import kulp.variables.LPReal
@@ -98,15 +97,17 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         val ortools_name = constraint.name.render()
         val ortools_constraint =
             when (constraint) {
-                is LP_LEQ -> {
+                is LP_LEZ -> {
                     makeConstraint(MPSolver.infinity(), MPSolver.infinity(), ortools_name).apply {
-                        for ((variable, coef) in constraint.std_lhs.terms) {
-                            known_variables[variable]?.let { setCoefficient(it.first, coef) }
+                        for ((variable, coef) in constraint.lhs.terms) {
+                            known_variables[variable]?.let {
+                                setCoefficient(it.first, coef.toDouble())
+                            }
                                 ?: throw IllegalArgumentException(
                                     "Unknown variable ${variable} in constraint. Bug??."
                                 )
                         }
-                        setBounds(-MPSolver.infinity(), -constraint.std_lhs.constant)
+                        setBounds(-MPSolver.infinity(), -constraint.lhs.constant.toDouble())
                         known_constraints[constraint.name] = Pair(this, constraint)
                     }
                 }
@@ -124,10 +125,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         for (term in objective.terms.entries) {
             known_variables[term.key]?.let {
                 ortools_objective.setCoefficient(it.first, term.value)
-            }
-                ?: throw IllegalArgumentException(
-                    "Unknown variable ${term.key} in objective. Bug??."
-                )
+            } ?: throw IllegalArgumentException("Unknown variable ${term.key} in objective. Bug??.")
         }
         when (sense) {
             LPObjectiveSense.Minimize -> ortools_objective.setMinimization()

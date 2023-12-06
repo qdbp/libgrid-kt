@@ -1,5 +1,3 @@
-import kotlin.math.max
-
 infix fun <T> List<T>.drop_at(ix: Int): List<T> {
     return this.slice(0 until ix) + this.slice(ix + 1 until this.size)
 }

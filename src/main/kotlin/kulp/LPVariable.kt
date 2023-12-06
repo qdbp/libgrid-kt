@@ -4,8 +4,7 @@ import kulp.variables.*
 import model.LPName
 
 /**
- * A variable is an affine expression with a particular form, that has a name and therefore a
- * representation in the output model.
+ * A variable is an affine expression whose value can be set directly by the solver.
  *
  * For this base interface, the representation might be complex (i.e. be attached to constraints and
  * involve auxiliaries).

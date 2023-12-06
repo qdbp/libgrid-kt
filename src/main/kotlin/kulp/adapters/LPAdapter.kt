@@ -1,8 +1,6 @@
 package kulp.adapters
 
 import kulp.*
-import kulp.LPConstraint
-import kulp.LPVariable
 import model.LPName
 
 /**
@@ -29,11 +27,11 @@ abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: 
 
     context(Solver)
     fun init() {
-        val primtives = problem.render(ctx)
+        val primitives = ctx.render(problem)
         val already_consumed = mutableSetOf<LPName>()
 
         // first, consume all variables
-        val variables = primtives.filterIsInstance<LPVariable<*>>()
+        val variables = primitives.values.filterIsInstance<LPVariable<*>>()
         for (variable in variables) {
             if (ctx.check_support(variable) != RenderSupport.PrimitiveVariable) {
                 throw Exception(
@@ -47,7 +45,7 @@ abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: 
         }
 
         // then, consume all constraints
-        val constraints = primtives.filterIsInstance<LPConstraint>()
+        val constraints = primitives.values.filterIsInstance<LPConstraint>()
         for (constraint in constraints) {
             if (ctx.check_support(constraint) != RenderSupport.PrimitiveConstraint) {
                 throw Exception(

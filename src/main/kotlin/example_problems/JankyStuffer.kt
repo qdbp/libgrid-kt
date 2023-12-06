@@ -1,10 +1,5 @@
 package example_problems
 
-import grid_model.D2
-import grid_model.GridDimension
-import grid_model.GridProblem
-import grid_model.Plane
-
 /**
  * Welcome to the lowliest of the low. Have to start somewhere, right?
  *

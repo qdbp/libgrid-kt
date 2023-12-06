@@ -1,9 +1,9 @@
 package kulp
 
+import model.LPName
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
-import model.LPName
 
 // genericized operations on numbers
 inline fun <reified N : Number> KClass<N>.zero(): N {
@@ -111,6 +111,11 @@ operator fun Double.times(other: LPAffExpr<Double>): LPAffExpr<Double> = other *
 
 operator fun Int.times(other: LPAffExpr<Int>): LPAffExpr<Int> = other * this
 
-fun Double.is_nearly_int(): Boolean {
-    return abs(this - this.roundToInt()) < 1e-6
+fun Number.is_nearly_int(): Boolean {
+    return abs(this.toDouble() - this.toDouble().roundToInt()) < 1e-6
 }
+
+fun Number.roundToInt(): Int {
+    return this.toDouble().roundToInt()
+}
+

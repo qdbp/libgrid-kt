@@ -1,10 +1,6 @@
 package kulp.transforms
 
-import kotlin.math.roundToInt
 import kulp.*
-import kulp.LPConstraint
-import kulp.constraints.LP_GEQ
-import kulp.constraints.LP_LEQ
 import kulp.variables.LPBinary
 import kulp.variables.LPInteger
 import model.LPName
@@ -20,9 +16,10 @@ import model.LPName
  * - 1 binary auxiliary
  * - 4 constraints
  */
+// TODO make generic
 class IntClip
 private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, val clip_ub: Int?) :
-    LPTransform<Int>(y), LPAffExpr<Int> {
+    LPTransform<Int>(y) {
 
     companion object {
         private fun make_output_var(name: LPName, lb: Int?, ub: Int?): LPInteger {
@@ -31,7 +28,13 @@ private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, 
     }
 
     constructor(x: LPInteger, lb: Int?, ub: Int?) : this(make_output_var(x.name, lb, ub), x, lb, ub)
-    constructor(name: LPName, x: LPAffExpr<Int>, lb: Int?, ub: Int?) : this(make_output_var(name, lb, ub), x, lb, ub)
+
+    constructor(
+        name: LPName,
+        x: LPAffExpr<Int>,
+        lb: Int?,
+        ub: Int?
+    ) : this(make_output_var(name, lb, ub), x, lb, ub)
 
     val z_lb = clip_lb?.let { LPBinary(name.refine("z_lb")) }
     val z_ub = clip_ub?.let { LPBinary(name.refine("z_ub")) }
@@ -45,12 +48,9 @@ private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, 
         require(clip_lb != null || clip_ub != null)
     }
 
-    private fun get_constraints_for_M(bigM: Double): List<LPRenderable> {
-
+    private fun LPName.get_constraints_for_M(M: Int): List<LPRenderable> {
         // note: we choose the convention that we are bound at x == ub/lb
         // this way z == 1 <=> x == bound, and this can be used as an implicit test for equality
-        val M = bigM.roundToInt()
-
         val out = mutableListOf<LPConstraint>()
         if (z_ub != null) {
             require(clip_ub != null)
@@ -58,20 +58,18 @@ private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, 
                 listOf(
                     // enforce that the binding variables == 1 iff x > ub
                     // == 1 if x >= ub:  Mz > x - ub
-                    LP_GEQ(name.refine("z_ub_bind_gt"), M * z_ub, x - clip_ub + 1),
+                    (M * z_ub) gt (x - clip_ub) named "z_ub_bind_clipped",
                     // == 0 if x < ub: M(1 - z) >= ub - x
-                    LP_GEQ(name.refine("z_ub_bind_le"), M * !z_ub, clip_ub - x),
+                    (M * !z_ub) ge (clip_ub - x) named "z_ub_bind_free",
                     // enforce that y == ub iff z == 1, else y >= x
                     // 1. y >= x - Mz
-                    LP_GEQ(name.refine("y_ge_x_midrange"), y, x - M * z_ub),
+                    y ge (x - M * z_ub) named "y_ge_x_midrange",
                     // 2. y >= ub - M(1 - z)
-                    LP_GEQ(name.refine("y_ge_ub_clipped"), y, -M * !z_ub + clip_ub),
+                    y ge (clip_ub - M * !z_ub) named "y_ge_ub_clipped",
                 )
             // if we have no lower bound, we also need to constrain that y never exceeds x
             // (this is handled by the lower bound logic otherwise)
-            if (z_lb == null) {
-                out.add(LP_LEQ(name.refine("y_le_x"), y, x))
-            }
+            if (z_lb == null) out += y le x named "y_le_x"
         }
         // this is by analogy to the above
         if (z_lb != null) {
@@ -79,24 +77,23 @@ private constructor(val y: LPInteger, val x: LPAffExpr<Int>, val clip_lb: Int?, 
             out +=
                 listOf(
                     // == 1 if x <= lb: Mz > lb - x
-                    LP_GEQ(name.refine("z_lb_bind_lt"), M * z_lb, clip_lb - x + 1),
+                    M * z_lb gt clip_lb - x named "z_lb_bind_clipped",
                     // == 0 if x > lb: M(1 - z) >= x - lb
-                    LP_GEQ(name.refine("z_lb_bind_ge"), M * !z_lb, x - clip_lb),
+                    M * !z_lb ge x - clip_lb named "z_lb_bind_free",
                     // enforce that y == lb iff z == 1, else y <= x
                     // 1. y <= x + Mz
-                    LP_LEQ(name.refine("y_le_x_midrange"), y, x + M * z_lb),
+                    y le x + M * z_lb named "y_le_x_midrange",
                     // 2. y <= lb + M(1 - z)
-                    LP_LEQ(name.refine("y_le_lb_clipped"), y, M * !z_lb + clip_lb),
+                    y le clip_lb + M * !z_lb named "y_le_lb_clipped",
                 )
             // similarly, if we have no upper bound, we need to constrain that y never goes below x
-            if (z_ub == null) {
-                out.add(LP_GEQ(name.refine("y_ge_x"), y, x))
-            }
+            if (z_ub == null) out += y ge x named "y_ge_x"
         }
         return out
     }
 
-    override fun LPName.render_auxiliaries(ctx: MipContext): List<LPRenderable> {
-        return get_constraints_for_M(ctx.bigM) + listOfNotNull(z_lb, z_ub)
+    override fun LPName.render_auxiliaries(ctx: LPContext): List<LPRenderable> {
+        require(ctx is BigMCapability)
+        return with(name) { get_constraints_for_M(ctx.intM) } + listOfNotNull(z_lb, z_ub)
     }
 }

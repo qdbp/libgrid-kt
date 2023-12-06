@@ -25,7 +25,7 @@ interface LPRenderable {
      * The parent object's name will be made available as the receiver of this method for convenient
      * sub-name formation.
      */
-    fun LPName.decompose(ctx: MipContext): List<LPRenderable> {
+    fun LPName.decompose(ctx: LPContext): List<LPRenderable> {
         throw NotImplementedError(
             "${this.javaClass} was not primitive for $ctx, but did not implement decompose()"
         )
