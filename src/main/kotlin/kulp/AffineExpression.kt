@@ -1,15 +1,14 @@
 package kulp
 
-import kulp.constraints.LP_EQZ
-import kulp.transforms.Constrained
-import kulp.variables.LPReal
-import model.LPName
-
 /** Represents an affine expression with real coefficients, constants and variables. */
-data class RealAffExpr(override val terms: Map<LPName, Double>, override val constant: Double) :
-    LPAffExpr<Double>, ReifiedNumberTypeWrapper<Double> by DoubleWrapper {
+data class RealAffExpr(override val terms: Map<LPNode, Double>, override val constant: Double) :
+    LPAffExpr<Double> {
 
     constructor(constant: Number) : this(mapOf(), constant.toDouble())
+
+    constructor() : this(0.0)
+
+    override val domain: LPDomain<Double> = Real
 
     override fun as_expr(n: Double): LPAffExpr<Double> = RealAffExpr(n)
 
@@ -30,7 +29,7 @@ data class RealAffExpr(override val terms: Map<LPName, Double>, override val con
     }
 
     override fun plus(other: LPAffExpr<Double>): LPAffExpr<Double> {
-        val new_terms = mutableMapOf<LPName, Double>()
+        val new_terms = mutableMapOf<LPNode, Double>()
         for ((k, v) in terms) {
             new_terms[k] = v
         }
@@ -44,12 +43,7 @@ data class RealAffExpr(override val terms: Map<LPName, Double>, override val con
         return RealAffExpr(terms, constant + other)
     }
 
-    override fun reify(name: LPName): Constrained<Double> {
-        val variable = LPReal(name)
-        return Constrained(variable, LP_EQZ(name.refine("reify_pin"), this - variable))
-    }
-
-    override fun evaluate(assignment: Map<LPName, Double>): Double? {
+    override fun evaluate(assignment: Map<LPNode, Double>): Double? {
         var result = constant
         for ((name, coef) in terms) {
             assignment[name]?.let { result += it * coef } ?: return null

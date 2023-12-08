@@ -1,11 +1,13 @@
 package kulp
 
-import model.LPName
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
+import kulp.variables.LPVar
+import nullable_fold
 
 // genericized operations on numbers
+@Suppress("UnusedReceiverParameter")
 inline fun <reified N : Number> KClass<N>.zero(): N {
     return when (N::class) {
         Double::class -> 0.0
@@ -17,6 +19,7 @@ inline fun <reified N : Number> KClass<N>.zero(): N {
         as N
 }
 
+@Suppress("UnusedReceiverParameter")
 inline fun <reified N : Number> KClass<N>.one(): N {
     return when (N::class) {
         Double::class -> 1.0
@@ -64,7 +67,7 @@ inline operator fun <reified N : Number> N.minus(other: N): N {
 // int specializations
 @Suppress("UNCHECKED_CAST")
 inline fun <reified N : Number> Iterable<LPAffExpr<N>>.lp_sum(): LPAffExpr<N> {
-    val sum_terms: MutableMap<LPName, N> = mutableMapOf()
+    val sum_terms: MutableMap<LPNode, N> = mutableMapOf()
     var constant = (N::class::zero)()
 
     for (term in this) {
@@ -119,3 +122,21 @@ fun Number.roundToInt(): Int {
     return this.toDouble().roundToInt()
 }
 
+// great artists steal and all that
+fun String.join(it: List<Any>): String = it.joinToString(this)
+
+fun <N : Number> List<LPVar<N>>.lb(): N? {
+    when (this.size) {
+        0 -> return null
+    }
+    val wrapper = this[0]
+    return this.map { it.lb }.nullable_fold(wrapper.domain.max)
+}
+
+fun <N : Number> List<LPVar<N>>.ub(): N? {
+    when (this.size) {
+        0 -> return null
+    }
+    val wrapper = this[0]
+    return this.map { it.ub }.nullable_fold(wrapper.domain.min)
+}

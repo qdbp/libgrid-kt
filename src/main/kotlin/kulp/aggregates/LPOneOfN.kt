@@ -1,12 +1,13 @@
 package kulp.aggregates
 
 import kulp.LPAggregate
+import kulp.LPContext
+import kulp.LPNode
 import kulp.LPRenderable
-import kulp.constraints.LP_EQZ
-import kulp.lp_sum
 import kulp.variables.LPBinary
-import mdspan.prod
-import model.LPName
+import mdspan.NDSpan
+import mdspan.NDSpanImpl
+import mdspan.lp_sum
 
 /**
  * The archetypal aggregate!
@@ -14,21 +15,33 @@ import model.LPName
  * This class models the fundamental "one of N" constraint, where exactly one of the binary
  * variables must be true.
  */
-class LPOneOfN(name: LPName, vars: List<LPBinary>, shape: List<Int>) :
-    LPAggregate<LPBinary>(name, vars, shape) {
+class LPOneOfN(
+    node: LPNode,
+    vars: NDSpan<LPBinary>,
+    // by default, we constrain on the last axis, since this tends to be how
+    constraint_subspace: List<Int> = listOf(vars.shape.size - 1),
+) : LPAggregate<LPBinary>(node, vars, constraint_subspace) {
 
     constructor(
-        name: LPName,
-        n: Int
-    ) : this(name, (0 until n).map { LPBinary(name.refine("is_$it")) }, listOf(n))
+        node: LPNode,
+        shape: List<Int>,
+        constraint_subspace: List<Int> = listOf(shape.size - 1),
+    ) : this(
+        node,
+        NDSpanImpl.full_by(shape) { ndix -> node grow { LPBinary(it) } named ndix },
+        constraint_subspace
+    )
 
-    constructor(
-        name: LPName,
-        shape: List<Int>
-    ) : this(name, List(shape.prod()) { ix -> LPBinary(name.refine(ix)) }, shape)
+    constructor(node: LPNode, n: Int) : this(node, listOf(n))
 
-    override fun LPName.render_interactions(): List<LPRenderable> {
-        val sum = this@LPOneOfN.lp_sum()
-        return listOf(sum eq 1 named "sums_to_1")
+    override fun decompose_subarray(
+        ctx: LPContext,
+        subspace_node: LPNode,
+        subarray: NDSpan<LPBinary>
+    ): LPRenderable {
+        val sum = subarray.lp_sum()
+        val lp_eq = subspace_node grow (sum eq 1) named "one_of_n_decompose_subarr"
+        println("XXXXXXXXXXXXXXXXXXXXXX$lp_eq")
+        return lp_eq
     }
 }

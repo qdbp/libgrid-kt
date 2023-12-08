@@ -2,22 +2,32 @@ package kulp
 
 import kulp.constraints.LP_EQZ
 import kulp.constraints.LP_LEZ
-import kulp.transforms.Constrained
-import model.LPName
+import kulp.variables.LPVar
 
 /**
- * Represents an affine expression of terms of the following form:
+ * Represents an abstract affine expression that can be expressed as a form:
  *
  * a_1 * x_1 + a_2 * x_2 + ... + a_n * x_n + c
  *
  * The base interface parameterizes over the numerical domain of the expression.
  */
-interface LPAffExpr<N : Number> : ReifiedNumberTypeWrapper<N> {
+interface LPAffExpr<N : Number> {
 
-    val terms: Map<LPName, N>
+    val domain: LPDomain<N>
+    val terms: Map<LPNode, N>
     val constant: N
 
-    // override fun as_expr(): LPAffineExpression<N> = this
+    companion object {
+        // gets an empty expression of the associated typejj
+        inline fun <reified M : Number> get_empty(): LPAffExpr<M> {
+            @Suppress("UNCHECKED_CAST")
+            return when (M::class) {
+                Double::class -> RealAffExpr() as LPAffExpr<M>
+                Int::class -> IntAffExpr() as LPAffExpr<M>
+                else -> throw NotImplementedError()
+            }
+        }
+    }
 
     /**
      * Any affine expression can be relaxed to a real affine expression.
@@ -74,7 +84,8 @@ interface LPAffExpr<N : Number> : ReifiedNumberTypeWrapper<N> {
      * - a pinch of your dignity as a 1337 haxx0r for not being able to get away with using the
      *   expression directly
      */
-    fun reify(name: LPName): Constrained<N>
+    fun reify(node: LPNode): LPVar<N> =
+        domain.newvar(node) requiring { this eq it named "reify_pin" }
 
     /**
      * Evaluates the expression as written to a number outside a solver context
@@ -84,75 +95,50 @@ interface LPAffExpr<N : Number> : ReifiedNumberTypeWrapper<N> {
      *
      * Should return null when the expression is not fully defined by the assignment.
      */
-    fun evaluate(assignment: Map<LPName, N>): N?
+    fun evaluate(assignment: Map<LPNode, N>): N?
 
     /** Creates a new (unbound) constraint: this >= other */
-    infix fun le(other: LPAffExpr<out Number>): UnboundRenderable<LPConstraint> {
+    infix fun le(other: LPAffExpr<out Number>): Free<LPConstraint> {
         // tunnel into NumberInfo
-        val coerced = coerce(other)
-        return object : UnboundRenderable<LPConstraint> {
-            override fun bind(name: LPName): LPConstraint = LP_LEZ(name, this@LPAffExpr - coerced)
-        }
+        val coerced = domain.coerce(other)
+        return { LP_LEZ(it, this - coerced) }
     }
 
     /** Creates a new (unbound) constraint: this >= other */
-    infix fun le(other: Number): UnboundRenderable<LPConstraint> =
-        this le as_expr(coerce_number(other))
+    infix fun le(other: Number): Free<LPConstraint> = this le as_expr(domain.coerce_number(other))
 
     /** Creates a new (unbound) constraint: this <= 0 */
-    fun lez(): UnboundRenderable<LPConstraint> {
-        return object : UnboundRenderable<LPConstraint> {
-            override fun bind(name: LPName): LPConstraint = LP_LEZ(name, this@LPAffExpr)
-        }
-    }
+    val lez: Free<LPConstraint>
+        get() = { LP_LEZ(it, this) }
 
     /** Creates a new (unbound) constraint: this <= other */
-    infix fun ge(other: LPAffExpr<out Number>): UnboundRenderable<LPConstraint> =
-        (-this) le (-other)
+    infix fun ge(other: LPAffExpr<out Number>): Free<LPConstraint> = (-this) le (-other)
 
     /** Creates a new (unbound) constraint: this <= other */
-    infix fun ge(other: Number): UnboundRenderable<LPConstraint> =
-        this ge as_expr(coerce_number(other))
+    infix fun ge(other: Number): Free<LPConstraint> = this ge as_expr(domain.coerce_number(other))
 
     /** Creates a new (unbound) constraint: this >= 0 */
-    fun gez(): UnboundRenderable<LPConstraint> = (-this).lez()
+    val gez: Free<LPConstraint>
+        get() = (-this).lez
 
     /** Creates a new (unbound) constraint: this == other */
-    infix fun eq(other: LPAffExpr<N>): UnboundRenderable<LPConstraint> {
-        return object : UnboundRenderable<LPConstraint> {
-            override fun bind(name: LPName): LPConstraint = LP_EQZ(name, this@LPAffExpr - other)
-        }
-    }
+    infix fun eq(other: LPAffExpr<N>): Free<LPConstraint> = { LP_EQZ(it, this - other) }
 
     /** Creates a new (unbound) constraint this == other */
-    infix fun eq(other: Number): UnboundRenderable<LPConstraint> =
-        this eq as_expr(coerce_number(other))
+    infix fun eq(other: Number): Free<LPConstraint> = this eq as_expr(domain.coerce_number(other))
 
     /** Creates a new (unbound) constraint: this == 0 */
-    fun eqz(): UnboundRenderable<LPConstraint> = this eq as_expr(zero)
+    val eqz: Free<LPConstraint>
+        get() = this eq as_expr(domain.zero)
 }
 
-/**
- * A wrapping interface around, effectively, a closure that requires a name to finish producing a
- * renderable. Combined with the LPName receiver on [LPRenderable.decompose], this exposes a natural
- * "builder" style syntax for generating related lists of renderables.
- */
-interface UnboundRenderable<T : LPRenderable> {
-    fun bind(name: LPName): T
-
-    // TODO need to abstract over "refinable" types
-    context(LPName)
-    infix fun named(s: String): T = bind(this@LPName.refine(s))
-
-    context(LPName)
-    infix fun named(indices: List<Int>): T = bind(this@LPName.refine(indices))
-
-    infix fun named(s: LPName): T = bind(s)
-
-    /**
-     * Binds the renderable to an absolute name serving as the root of a new tree.
-     *
-     * This is useful inside Problems, where we define a lot of top level variables.
-     */
-    infix fun rooted(s: String): T = bind(LPName(s))
+abstract class LPSumExpr<N : Number> : LPAffExpr<N> {
+    final override fun toString(): String {
+        if (this.terms.size <= 3) {
+            val out = terms.entries.joinToString(" + ") { "${it.value} ${it.key}" } + " + $constant"
+            return out.replace("+ -", "- ")
+        } else {
+            return "... + $constant"
+        }
+    }
 }

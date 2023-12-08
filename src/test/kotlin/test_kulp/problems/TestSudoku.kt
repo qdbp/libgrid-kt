@@ -4,24 +4,23 @@ import com.google.ortools.Loader
 import com.google.ortools.linearsolver.MPSolver
 import kulp.*
 import kulp.adapters.ORToolsAdapter
-import kulp.constraints.LP_EQZ
-import kulp.variables.LPBinary
+import kulp.aggregates.LPOneOfN
 import mdspan.*
-import model.LPName
-import model.sn
 import org.junit.jupiter.api.Test
+import test_kulp.ScipTester
 
 private object SudokuProblem : LPProblem() {
 
-    val variables: Map<LPName, LPBinary> =
-        ndindex(9, 9, 9).associate {
-            val name = "z".sn.refine(it[0], it[1], it[2])
-            name to LPBinary(name)
-        }
+    override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> =
+        Pair(RealAffExpr(0.0), LPObjectiveSense.Minimize)
 
-    override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
-        return Pair(RealAffExpr(0.0), LPObjectiveSense.Minimize)
-    }
+    // dimensions are [row, col, digit]
+    val indicators =
+        node grow
+            {
+                LPOneOfN(it, shape = listOf(9, 9, 9), constraint_subspace = listOf(2))
+            } named
+            "variables"
 
     val initial_list =
         listOf(
@@ -56,61 +55,41 @@ private object SudokuProblem : LPProblem() {
             Triple(5, 8, 9),
         )
 
-    override fun get_renderables(): List<LPRenderable> {
-        // dimensions are [digit, row, col]
-        val span = variables.values.toList().mdspan(9, 9, 9)
-        val renderables = mutableListOf<LPRenderable>()
+    // dimensions are [digit, row, col]
+    init {
+        // rows
+        indicators.apply_subspace_indexed(listOf(0)) { ix, row ->
+            node += row.lp_sum() eq 1 named "one_per_row_${ix.lp_name}"
+        }
+        // columns
+        indicators.apply_subspace_indexed(listOf(1)) { ix, col ->
+            node += col.lp_sum() eq 1 named "one_per_col_${ix.lp_name}"
+        }
 
-        // exclusivity constraint
-        for ((row, col) in ndindex(9, 9)) {
-            val slice = span.slice(ALL, IDX(row), IDX(col))
-            renderables.add(LP_EQZ("exactly_one_at".sn.refine(row, col), slice.lp_sum() - 1))
-        }
-        // one per col
-        for ((col, digit) in ndindex(9, 9)) {
-            val slice = span.slice(IDX(digit), ALL, IDX(digit))
-            renderables.add(LP_EQZ("one_per_col".sn.refine(digit, col), slice.lp_sum() - 1))
-        }
-        // one per row
-        for ((row, digit) in ndindex(9, 9)) {
-            val slice = span.slice(IDX(digit), IDX(row), ALL)
-            renderables.add(LP_EQZ("one_per_row".sn.refine(digit, row), slice.lp_sum() - 1))
-        }
-        // one per box
+        // one per box -- no easy way to do this one!
         for ((box, digit) in ndindex(9, 9)) {
             val start_row = 3 * (box / 3)
             val start_col = 3 * (box % 3)
             val slice =
-                span.slice(IDX(digit), SLC(start_row, start_row + 3), SLC(start_col, start_col + 3))
-            renderables.add(LP_EQZ("one_per_box".sn.refine(digit, box), slice.lp_sum() - 1))
+                indicators.slice(
+                    SLC(start_row, start_row + 3),
+                    SLC(start_col, start_col + 3),
+                    IDX(digit),
+                )
+            node += slice.lp_sum() eq 1 named "one_per_box_${digit}_${box}"
         }
-
+        // initial values
         for ((digit, row, col) in initial_list) {
-            renderables.add(
-                LP_EQZ("initial".sn.refine(digit, row, col), span[digit - 1, row - 1, col - 1] - 1)
-            )
+            val ind = indicators[row - 1, col - 1, digit - 1]
+            node += (ind eq 1) named "initial_${digit}_${row}_${col}"
         }
-
-        renderables.addAll(variables.values)
-        return renderables
     }
-
-    override val name: LPName = "SudokuProblem".sn
 }
 
-class TestSudoku {
+class TestSudoku: ScipTester() {
     @Test
     fun testSudoku() {
-        // solve the whiskas problem with or-tools
-        val ctx = MipContext(1000.0)
-        Loader.loadNativeLibraries()
-        val solver = MPSolver.createSolver("SCIP")
-        val solution =
-            solver.run {
-                val adapter = ORToolsAdapter(SudokuProblem, ctx)
-                adapter.init()
-                return@run adapter.run_solver()
-            }
+        val solution = solve_problem(SudokuProblem)
         assert(solution.status() == LPSolutionStatus.Optimal)
     }
 }

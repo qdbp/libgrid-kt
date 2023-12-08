@@ -1,5 +1,5 @@
 package kulp.variables
 
-import model.LPName
+import kulp.LPNode
 
-class LPNonnegativeInteger(name: LPName) : LPInteger(name, 0, null)
+class LPNonnegativeInteger(name: LPNode) : PrimitiveLPInteger(name, 0, null)

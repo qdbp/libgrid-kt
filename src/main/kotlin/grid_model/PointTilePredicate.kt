@@ -3,7 +3,7 @@
 //import kulp.*
 //import kulp.transforms.IntEQZWitness
 //import kulp.variables.LPBinary
-//import model.LPName
+//import model.LPNode
 //
 //// TODO TEST ALL THIS
 //
@@ -72,7 +72,7 @@
 //    }
 //}
 //
-//class IsOneOf(override val name: LPName, val required_tiles: Set<Tile>) :
+//class IsOneOf(override val name: LPNode, val required_tiles: Set<Tile>) :
 //    LPTilePredicate(), PointTilePredicate {
 //    /** Need to take a simple OR over all the assignments that are also in our desired set. */
 //    override fun satisfaction_witness(
@@ -88,7 +88,7 @@
 //    }
 //}
 //
-//class IsNoneOf(name: LPName, val tiles: Set<Tile>) : LPTilePredicate(name) {
+//class IsNoneOf(name: LPNode, val tiles: Set<Tile>) : LPTilePredicate(name) {
 //    override fun satisfaction_witness(
 //        ctx: MipContext,
 //        mapping: Map<Tile, LPBinary>
@@ -107,7 +107,7 @@
 //    }
 //}
 //
-//class Xor(name: LPName, val constraints: Set<LPTilePredicate>) : LPTilePredicate(name) {
+//class Xor(name: LPNode, val constraints: Set<LPTilePredicate>) : LPTilePredicate(name) {
 //
 //    // TODO lift these to ReifiedXYZ transforms to decouple them from the grid stuff
 //    override fun satisfaction_witness(
@@ -124,7 +124,7 @@
 //    }
 //}
 //
-//class Or(name: LPName, val constraints: Set<LPTilePredicate>) : LPTilePredicate(name) {
+//class Or(name: LPNode, val constraints: Set<LPTilePredicate>) : LPTilePredicate(name) {
 //    override fun satisfaction_witness(
 //        ctx: MipContext,
 //        mapping: Map<Tile, LPBinary>
@@ -137,7 +137,7 @@
 //    }
 //}
 //
-//class And(name: LPName, val constraints: Set<LPTilePredicate>) : LPTilePredicate(name) {
+//class And(name: LPNode, val constraints: Set<LPTilePredicate>) : LPTilePredicate(name) {
 //    override fun satisfaction_witness(
 //        ctx: MipContext,
 //        mapping: Map<Tile, LPBinary>
@@ -152,7 +152,7 @@
 //    }
 //}
 //
-//class Not(name: LPName, val constraint: LPTilePredicate) : LPTilePredicate(name) {
+//class Not(name: LPNode, val constraint: LPTilePredicate) : LPTilePredicate(name) {
 //    override fun satisfaction_witness(
 //        ctx: MipContext,
 //        mapping: Map<Tile, LPBinary>

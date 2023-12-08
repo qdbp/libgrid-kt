@@ -2,7 +2,7 @@ package kulp.constraints
 
 import kulp.LPAffExpr
 import kulp.LPConstraint
-import model.LPName
+import kulp.LPNode
 
 // TODO make normal form the only form, remove aux constructors
 // TODO consider making generic versions of this for CP-SAT
@@ -10,7 +10,9 @@ import model.LPName
 /**
  * The buck stops here.
  *
- * This is the lowliest constraint in our universe, and its mighty shoulders bear the weight
- * of optimization universes.
+ * This is the lowliest constraint in our universe, and its mighty shoulders bear the weight of
+ * optimization universes.
  */
-class LP_LEZ(override val name: LPName, val lhs: LPAffExpr<*>) : LPConstraint
+class LP_LEZ(node: LPNode, val lhs: LPAffExpr<*>) : LPConstraint(node) {
+    override fun toString(): String = "[$lhs <= 0]"
+}

@@ -10,7 +10,7 @@ import kulp.adapters.ORToolsAdapter
  * Helper class to hide away SCIP boilerplate.
  */
 open class ScipTester {
-    protected fun solveProblem(prob: LPProblem): ORToolsAdapter.ORToolsSolution {
+    protected fun solve_problem(prob: LPProblem): ORToolsAdapter.ORToolsSolution {
         val ctx = MipContext(1000.0)
         Loader.loadNativeLibraries()
         val solver = MPSolver.createSolver("SCIP")

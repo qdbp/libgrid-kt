@@ -1,10 +1,11 @@
 package kulp
 
-import kulp.constraints.LP_LEZ
-import kulp.variables.LPInteger
-import kulp.variables.LPReal
-import model.LPName
 import kotlin.math.roundToInt
+import kulp.constraints.LP_LEZ
+import kulp.variables.PrimitiveLPInteger
+import kulp.variables.PrimitiveLPReal
+
+class UnsupportedRenderableError(msg: String) : IllegalArgumentException(msg)
 
 enum class RenderSupport {
     PrimitiveVariable,
@@ -13,6 +14,8 @@ enum class RenderSupport {
     Unsupported;
 
     fun can_render(): Boolean = this != Unsupported
+
+    fun should_expand(): Boolean = this == Compound
 }
 
 sealed class LPContext {
@@ -30,17 +33,12 @@ sealed class LPContext {
         return 1
     }
 
-    /** Given some renderable, estimate the computational cost of adding it to the model. */
-    fun total_cost(thing: LPRenderable): Int {
-        return render(thing).values.sumOf { estimate_primitive_cost(it) }
-    }
-
     fun check_support(thing: LPRenderable): RenderSupport {
         return when (thing) {
-            is LPInteger ->
+            is PrimitiveLPInteger ->
                 if (this is IntegerCapability) RenderSupport.PrimitiveVariable
                 else RenderSupport.Unsupported
-            is LPReal ->
+            is PrimitiveLPReal ->
                 if (this is RealCapability) RenderSupport.PrimitiveVariable
                 else RenderSupport.Unsupported
             is LP_LEZ -> RenderSupport.PrimitiveConstraint
@@ -48,57 +46,6 @@ sealed class LPContext {
             //  reject some things explicitly
             else -> RenderSupport.Compound
         }
-    }
-
-    fun render(thing: LPRenderable): Map<LPName, LPRenderable> {
-
-        val open_set = mutableListOf(thing)
-        val out_map: MutableMap<LPName, LPRenderable> = mutableMapOf()
-
-        while (open_set.isNotEmpty()) {
-            val next = open_set.removeFirst()
-            if (next.name in out_map) {
-                throw IllegalArgumentException(
-                    "Renderable ${next.name} already seen, skipping re-render."
-                )
-            }
-
-            when (check_support(next)) {
-                RenderSupport.PrimitiveVariable,
-                RenderSupport.PrimitiveConstraint -> out_map[next.name] = next
-                RenderSupport.Compound ->
-                    with(next.name) { with(next) { open_set += decompose(this@LPContext) } }
-                RenderSupport.Unsupported ->
-                    throw IllegalArgumentException(
-                        "Context $this considers this renderable to be unsupported."
-                    )
-            }
-        }
-
-        return out_map
-    }
-
-    /**
-     * Goes through the declared renderables and expands them down to primitives which are
-     * considered primitive by the context.
-     *
-     * Will raise if it encounters any renderables which the context claims it cannot process.
-     */
-    fun render(problem: LPProblem): Map<LPName, LPRenderable> {
-
-        val out: MutableMap<LPName, LPRenderable> = mutableMapOf()
-
-        for (root_renderable in problem.get_renderables()) {
-            val rendered = render(root_renderable)
-            if (rendered.keys.any { it in out.keys }) {
-                throw IllegalArgumentException(
-                    "Renderable ${root_renderable.name} has a name collision with a previously rendered " +
-                        "renderable."
-                )
-            }
-            out.putAll(rendered)
-        }
-        return out
     }
 }
 
@@ -112,11 +59,12 @@ interface BigMCapability : SolverCapability {
         get() = bigM.roundToInt()
 
     @Suppress("UNCHECKED_CAST")
-    fun <N: Number> getM(info: ReifiedNumberTypeWrapper<N>): N = when (info) {
-        IntWrapper -> intM
-        DoubleWrapper -> bigM
-        else -> throw IllegalArgumentException("Unsupported number type $info")
-    } as N
+    fun <N : Number> getM(domain: LPDomain<N>): N =
+        when (domain) {
+            Integral -> intM
+            Real -> bigM
+        }
+            as N
 }
 
 interface RealCapability : SolverCapability

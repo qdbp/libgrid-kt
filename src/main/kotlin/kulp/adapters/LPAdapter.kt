@@ -1,7 +1,7 @@
 package kulp.adapters
 
 import kulp.*
-import model.LPName
+import kulp.variables.LPVar
 
 /**
  * Base class for adapters that map our LPProblem to a concrete third-party backend.
@@ -15,7 +15,7 @@ context(Solver)
 abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: MipContext) {
 
     context(Solver)
-    abstract fun consume_variable(variable: LPVariable<*>)
+    abstract fun consume_variable(variable: LPVar<*>)
 
     context(Solver)
     abstract fun consume_constraint(constraint: LPConstraint)
@@ -27,34 +27,25 @@ abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: 
 
     context(Solver)
     fun init() {
-        val primitives = ctx.render(problem)
-        val already_consumed = mutableSetOf<LPName>()
+        val primitives = problem.node.render(ctx)
+        val already_consumed = mutableSetOf<LPNode>()
 
         // first, consume all variables
-        val variables = primitives.values.filterIsInstance<LPVariable<*>>()
+        val variables = primitives.values.filterIsInstance<LPVar<*>>()
         for (variable in variables) {
-            if (ctx.check_support(variable) != RenderSupport.PrimitiveVariable) {
-                throw Exception(
-                    "Non-primitive variable $variable found in problem render. Bug!"
-                )
-            }
-            if (variable.name !in already_consumed) {
+            println("consuming ${variable.node}")
+            if (variable.node !in already_consumed) {
                 consume_variable(variable)
-                already_consumed.add(variable.name)
+                already_consumed.add(variable.node)
             }
         }
 
         // then, consume all constraints
         val constraints = primitives.values.filterIsInstance<LPConstraint>()
         for (constraint in constraints) {
-            if (ctx.check_support(constraint) != RenderSupport.PrimitiveConstraint) {
-                throw Exception(
-                    "Non-primitive constraint $constraint found in problem render. Bug!"
-                )
-            }
-            if (constraint.name !in already_consumed) {
+            if (constraint.node !in already_consumed) {
                 consume_constraint(constraint)
-                already_consumed.add(constraint.name)
+                already_consumed.add(constraint.node)
             }
         }
 

@@ -1,8 +1,8 @@
 package kulp.transforms
 
 import kulp.*
+import kulp.variables.BaseLPInteger
 import kulp.variables.LPBinary
-import model.LPName
 
 // TODO can we reify constraints in a generic way?
 /**
@@ -17,41 +17,30 @@ import model.LPName
  */
 // TODO can we be more efficient?
 // TODO can we express this for Reals? the trouble is the M(1 - z) > x term...
-class IntEQZWitness private constructor(z_eq: LPBinary, val x: LPAffExpr<Int>) :
-    LPTransform<Int>(z_eq) {
+class IntEQZWitness(node: LPNode, val x: LPAffExpr<Int>) : BaseLPInteger(node) {
+    override val lb = 0
+    override val ub = null
 
-    constructor(name: LPName, term: LPAffExpr<Int>) : this(LPBinary(name), term)
+    constructor(node: LPNode, lhs: LPAffExpr<Int>, rhs: LPAffExpr<Int>) : this(node, lhs - rhs)
 
-    constructor(
-        name: LPName,
-        lhs: LPAffExpr<Int>,
-        rhs: LPAffExpr<Int>
-    ) : this(LPBinary(name), lhs - rhs)
-
-    override fun LPName.render_auxiliaries(ctx: LPContext): List<LPRenderable> {
+    override fun decompose(ctx: LPContext) {
         require(ctx is BigMCapability)
         val M = ctx.intM
-
-        val zn = LPBinary(+"z_dlz") // diff less than zero
-        val zp = LPBinary(+"z_dgz") // diff greater than zero
-
-        val constraints = mutableListOf<LPRenderable>()
-        with(zn.name) {
-            // negative half, if x < 0
-            // we require z == 1 if x < 0: -Mz       <= x
-            constraints += -M * zn le x named "bind_1"
-            //            z == 0 if x >= 0:  M(1 - z)  > x
-            constraints += M * !zn gt x named "bind_0"
-        }
+        // diff less than zero
+        val zn = node grow { LPBinary(it) } named "z_dlz"
+        // diff greater than zero
+        val zp = node grow { LPBinary(it) } named "z_dgz"
+        // negative half, if x < 0
+        // we require z == 1 if x < 0: -Mz       <= x
+        zn.node += -M * zn le x named "bind_1"
+        //            z == 0 if x >= 0:  M(1 - z)  > x
+        zn.node += M * !zn gt x named "bind_0"
         // positive half, if x >= 0
-        with(zp.name) {
-            // we require z == 1 if x >  0:  Mz        >= x
-            constraints += M * zp ge x named "bind_1"
-            //            z == 0 if x <= 0: -M(1 - z)  < x
-            constraints += -M * !zp lt x named "bind_0"
-            // LP_EQZ(output.name.refine("bind"), output, 1 - zn - zp)
-        }
-        constraints += output eq (1 - zn - zp) named "bind"
-        return constraints + listOf(zn, zp)
+        // we require z == 1 if x >  0:  Mz        >= x
+        zp.node += M * zp ge x named "bind_1"
+        //            z == 0 if x <= 0: -M(1 - z)  < x
+        zp.node += -M * !zp lt x named "bind_0"
+
+        node += this eq (1 - zn - zp) named "bind"
     }
 }

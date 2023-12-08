@@ -4,8 +4,8 @@ fun Iterable<Int>.prod(): Int {
     return this.reduce { acc, i -> acc * i }
 }
 
-fun <T> List<T>.mdspan(vararg shape: Int): NDSpan<T> {
-    return NDSpan(this, shape.toList())
+fun <T> List<T>.mdspan(vararg shape: Int): NDSpanImpl<T> {
+    return NDSpanImpl(this, shape.toList())
 }
 
 fun ndindex(vararg shape: Int): List<List<Int>> {

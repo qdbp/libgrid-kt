@@ -1,38 +1,40 @@
 package kulp
 
-import kulp.constraints.LP_EQZ
-import kulp.transforms.Constrained
 import kulp.transforms.IntClip
-import kulp.variables.LPInteger
-import model.LPName
 
 // extensions on LPAffExpr<Int> to be more generic
-fun LPAffExpr<Int>.int_clip(name: LPName, lb: Int?, ub: Int?): IntClip = IntClip(name, this, lb, ub)
+fun LPAffExpr<Int>.int_clip(lb: Int? = null, ub: Int? = null): Free<IntClip> = { node ->
+    IntClip(node, this, lb, ub)
+}
 
-fun LPAffExpr<Int>.bool_clip(name: LPName): IntClip = int_clip(name, 0, 1)
+val LPAffExpr<Int>.boolclipped: Free<IntClip>
+    get() = int_clip(0, 1)
 
 // int expressions support strict inequality
-infix fun LPAffExpr<Int>.lt(other: LPAffExpr<Int>): UnboundRenderable<LPConstraint> {
+infix fun LPAffExpr<Int>.lt(other: LPAffExpr<Int>): Free<LPConstraint> {
     return this le (other - 1)
 }
 
-infix fun LPAffExpr<Int>.lt(other: Int): UnboundRenderable<LPConstraint> {
+infix fun LPAffExpr<Int>.lt(other: Int): Free<LPConstraint> {
     return this le (other - 1)
 }
 
-infix fun LPAffExpr<Int>.gt(other: LPAffExpr<Int>): UnboundRenderable<LPConstraint> =
-    this ge (other + 1)
+infix fun LPAffExpr<Int>.gt(other: LPAffExpr<Int>): Free<LPConstraint> = this ge (other + 1)
 
-infix fun LPAffExpr<Int>.gt(other: Int): UnboundRenderable<LPConstraint> = this ge (other + 1)
+infix fun LPAffExpr<Int>.gt(other: Int): Free<LPConstraint> = this ge (other + 1)
 
-fun LPAffExpr<Int>.ltz(): UnboundRenderable<LPConstraint> = this le -1
+fun LPAffExpr<Int>.ltz(): Free<LPConstraint> = this le -1
 
-fun LPAffExpr<Int>.gtz(): UnboundRenderable<LPConstraint> = this ge 1
+fun LPAffExpr<Int>.gtz(): Free<LPConstraint> = this ge 1
 
-data class IntAffExpr(override val terms: Map<LPName, Int>, override val constant: Int) :
-    LPAffExpr<Int>, ReifiedNumberTypeWrapper<Int> by IntWrapper {
+data class IntAffExpr(override val terms: Map<LPNode, Int>, override val constant: Int) :
+    LPSumExpr<Int>() {
 
     constructor(constant: Number) : this(mapOf(), constant.toInt())
+
+    constructor() : this(0)
+
+    override val domain: LPDomain<Int> = Integral
 
     override fun as_expr(n: Int): LPAffExpr<Int> = IntAffExpr(n)
 
@@ -65,7 +67,7 @@ data class IntAffExpr(override val terms: Map<LPName, Int>, override val constan
     }
 
     override fun plus(other: LPAffExpr<Int>): LPAffExpr<Int> {
-        val new_terms = mutableMapOf<LPName, Int>()
+        val new_terms = mutableMapOf<LPNode, Int>()
         for ((k, v) in terms) {
             new_terms[k] = v
         }
@@ -79,11 +81,7 @@ data class IntAffExpr(override val terms: Map<LPName, Int>, override val constan
         return IntAffExpr(terms, constant + other)
     }
 
-    override fun reify(name: LPName): Constrained<Int> {
-        return LPInteger(name) requiring { LP_EQZ(name.refine("reify_pin"), this - it) }
-    }
-
-    override fun evaluate(assignment: Map<LPName, Int>): Int? {
+    override fun evaluate(assignment: Map<LPNode, Int>): Int? {
         var result = constant
         for ((name, coef) in terms) {
             assignment[name]?.let { result += it * coef } ?: return null

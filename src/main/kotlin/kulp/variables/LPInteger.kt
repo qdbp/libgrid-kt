@@ -1,14 +1,6 @@
 package kulp.variables
 
-import kulp.IntAffExpr
-import kulp.LPAffExpr
-import kulp.LPDomain
-import model.LPName
+import kulp.LPNode
 
-open class LPInteger(
-    override val name: LPName,
-    override val lb: Int? = null,
-    override val ub: Int? = null,
-) : PrimitiveLPVariable<Int>(), LPAffExpr<Int> by IntAffExpr(mapOf(name to 1), 0) {
-    override val domain: LPDomain = LPDomain.Integral
-}
+/** A primitive LP integer without bounds */
+class LPInteger(node: LPNode, lb: Int?, ub: Int?) : PrimitiveLPInteger(node, lb, ub)
