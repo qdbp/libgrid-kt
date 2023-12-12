@@ -18,31 +18,40 @@ package grid_model
  * Electrical *supply* is an example of a universal plane as well. However, electrical *demand* is
  * an example of a private plane. Each entity has its own electrical demand.
  */
-abstract class Plane<T : Tile>(protected val id: PlaneIdentifier, val tile_set: TileSet<T>) {
+abstract class Plane(protected val id: PlaneIdentifier) {
     override fun equals(other: Any?): Boolean {
         if (other == null) return false
-        if (other !is Plane<*>) return false
-        if (other.tile_set != tile_set) return false
-        return when(id) {
+        if (other !is Plane) return false
+        return when (id) {
             is Universal -> other.id is Universal
-            is Unique -> this === other
+            is Unique -> id === other.id
             is Named -> other.id is Named && other.id.name == id.name
         }
     }
-    override fun hashCode(): Int {
-        return Pair(id, tile_set).hashCode()
-    }
 
-    fun size(): Int {
-        return tile_set.size
-    }
+    val nice_name: String =
+        when (id) {
+            is Universal -> "${this::class.simpleName}"
+            is Unique -> "${this::class.simpleName}@${this.id.hashCode()}"
+            is Named -> "${this::class.simpleName}@${this.id.name}"
+        }
+
+    override fun hashCode(): Int = Pair(this::class, id).hashCode()
 }
 
 sealed class PlaneIdentifier
 
 internal object Universal : PlaneIdentifier()
 
-internal object Unique : PlaneIdentifier()
+internal class Unique : PlaneIdentifier() {
+    override fun equals(other: Any?): Boolean {
+        return this === other
+    }
+
+    override fun hashCode(): Int {
+        return System.identityHashCode(this)
+    }
+}
 
 internal data class Named(val name: String) : PlaneIdentifier()
 
@@ -51,20 +60,19 @@ internal data class Named(val name: String) : PlaneIdentifier()
  *
  * e.g. physical extent
  */
-abstract class UniversalPlane<T : Tile>(tile_set: TileSet<T>) : Plane<T>(Universal, tile_set)
-
+abstract class UniversalPlane : Plane(Universal)
 
 /**
- * A unique plane exists in a "private universe" and does not overlap with any other plane,
- * even those with the same tile set.
+ * A unique plane exists in a "private universe" and does not overlap with any other plane, even
+ * those with the same tile set.
  *
  * e.g. electrical demand
  */
-abstract class UniquePlane<T : Tile>(tile_set: TileSet<T>) : Plane<T>(Unique, tile_set)
+abstract class UniquePlane : Plane(Unique())
 
 /**
  * A named plane is one that is considered to overlap when it has the same name.
  *
  * e.g. underground belts
  */
-abstract class NamedPlane<T : Tile>(val name: String, tile_set: TileSet<T>) : Plane<T>(Named(name), tile_set)
+abstract class NamedPlane(val name: String) : Plane(Named(name))

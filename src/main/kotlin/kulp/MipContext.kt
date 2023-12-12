@@ -2,6 +2,9 @@ package kulp
 
 import kotlin.math.roundToInt
 import kulp.constraints.LP_LEZ
+import kulp.domains.Integral
+import kulp.domains.LPDomainImpl
+import kulp.domains.Real
 import kulp.variables.PrimitiveLPInteger
 import kulp.variables.PrimitiveLPReal
 
@@ -49,7 +52,7 @@ sealed class LPContext {
     }
 }
 
-interface SolverCapability
+sealed interface SolverCapability
 
 /** Contexts implementing this interface support bigM-style formulation */
 interface BigMCapability : SolverCapability {
@@ -59,7 +62,7 @@ interface BigMCapability : SolverCapability {
         get() = bigM.roundToInt()
 
     @Suppress("UNCHECKED_CAST")
-    fun <N : Number> getM(domain: LPDomain<N>): N =
+    fun <N : Number> getM(domain: LPDomainImpl<N>): N =
         when (domain) {
             Integral -> intM
             Real -> bigM
@@ -71,9 +74,9 @@ interface RealCapability : SolverCapability
 
 interface IntegerCapability : SolverCapability
 
-class LpContext() : LPContext(), RealCapability
+class LpContext : LPContext(), RealCapability
 
 class MipContext(override val bigM: Double = 1000.0) :
     LPContext(), BigMCapability, RealCapability, IntegerCapability
 
-class CPSATContext() : LPContext(), IntegerCapability
+class CPSATContext : LPContext(), IntegerCapability

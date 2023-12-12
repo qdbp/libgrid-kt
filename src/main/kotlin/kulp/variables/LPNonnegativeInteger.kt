@@ -1,5 +1,7 @@
 package kulp.variables
 
+import kulp.BindCtx
 import kulp.LPNode
 
-class LPNonnegativeInteger(name: LPNode) : PrimitiveLPInteger(name, 0, null)
+context(BindCtx)
+class LPNonnegativeInteger(name: LPNode) : PrimitiveLPInteger(0, null)

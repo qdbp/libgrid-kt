@@ -3,7 +3,11 @@ package test_kulp.test_transforms
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kulp.*
+import kulp.LPAffExpr
+import kulp.LPObjectiveSense
+import kulp.LPProblem
+import kulp.LPSolutionStatus
+import kulp.expressions.int_clip
 import kulp.variables.LPInteger
 import test_kulp.ScipTester
 
@@ -14,8 +18,8 @@ private class IntClipTestProblem(
     val pin_x: Int? = null
 ) : LPProblem() {
 
-    val x = node grow { LPInteger(it, pin_x, pin_x) } named "x"
-    val y = node grow x.int_clip(lb, ub) named "yt"
+    val x = node.bind("x") { LPInteger(pin_x, pin_x) }
+    val y = node.bind("y") { x.int_clip(lb, ub) }
 
     override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> = mk_objective(y)
 }
@@ -26,9 +30,10 @@ class TestIntClip : ScipTester() {
     fun testLbOnly() {
         val prob = IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -10, ub = null)
         val solution = solve_problem(prob)
+        prob.node.dump_full_node_dfs()
         assertNull(prob.y.z_ub)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
-        assertEquals(1.0, solution.value_of(prob.y.z_lb!!.node))
+        assertEquals(1.0, solution.value_of(prob.y.z_lb!!))
         assertEquals(-10.0, solution.objective_value())
     }
 
@@ -39,7 +44,7 @@ class TestIntClip : ScipTester() {
         val solution = solve_problem(prob)
         assertNull(prob.y.z_ub)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
-        assertEquals(0.0, solution.value_of(prob.y.z_lb!!.node))
+        assertEquals(0.0, solution.value_of(prob.y.z_lb!!))
         assertEquals(7.0, solution.objective_value())
     }
 
@@ -54,7 +59,9 @@ class TestIntClip : ScipTester() {
             )
         val solution = solve_problem(prob)
         assertNull(prob.y.z_ub)
-        assertEquals(1.0, solution.value_of(prob.y.z_lb!!.node))
+        assertEquals(1.0, solution.value_of(prob.y.z_lb!!))
+        assertEquals(-15.0, solution.value_of(prob.x))
+        assertEquals(-10.0, solution.value_of(prob.y))
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(-10.0, solution.objective_value())
     }

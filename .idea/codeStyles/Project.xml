@@ -7,6 +7,7 @@
         <option name="TAB_SIZE" value="2" />
       </value>
     </option>
+    <option name="LINE_SEPARATOR" value="&#10;" />
     <option name="INSERT_INNER_CLASS_IMPORTS" value="false" />
     <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="5" />
     <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="3" />
@@ -600,6 +601,7 @@
     </codeStyleSettings>
     <codeStyleSettings language="kotlin">
       <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
+      <option name="RIGHT_MARGIN" value="100" />
     </codeStyleSettings>
     <codeStyleSettings language="protobuf">
       <option name="RIGHT_MARGIN" value="80" />

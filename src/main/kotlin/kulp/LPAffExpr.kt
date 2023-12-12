@@ -2,6 +2,8 @@ package kulp
 
 import kulp.constraints.LP_EQZ
 import kulp.constraints.LP_LEZ
+import kulp.expressions.IntAffExpr
+import kulp.expressions.RealAffExpr
 import kulp.variables.LPVar
 
 /**
@@ -13,21 +15,9 @@ import kulp.variables.LPVar
  */
 interface LPAffExpr<N : Number> {
 
-    val domain: LPDomain<N>
-    val terms: Map<LPNode, N>
+    val dom: LPDomain<N>
+    val terms: Map<LPPath, N>
     val constant: N
-
-    companion object {
-        // gets an empty expression of the associated typejj
-        inline fun <reified M : Number> get_empty(): LPAffExpr<M> {
-            @Suppress("UNCHECKED_CAST")
-            return when (M::class) {
-                Double::class -> RealAffExpr() as LPAffExpr<M>
-                Int::class -> IntAffExpr() as LPAffExpr<M>
-                else -> throw NotImplementedError()
-            }
-        }
-    }
 
     /**
      * Any affine expression can be relaxed to a real affine expression.
@@ -84,61 +74,48 @@ interface LPAffExpr<N : Number> {
      * - a pinch of your dignity as a 1337 haxx0r for not being able to get away with using the
      *   expression directly
      */
-    fun reify(node: LPNode): LPVar<N> =
-        domain.newvar(node) requiring { this eq it named "reify_pin" }
+    context(NodeCtx)
+    fun reify(): LPVar<N>
 
-    /**
-     * Evaluates the expression as written to a number outside a solver context
-     *
-     * This can and should be used to use the LP business logic to perform out-of-solver evaluations
-     * like rendering partial or manual solutions, etc.
-     *
-     * Should return null when the expression is not fully defined by the assignment.
-     */
-    fun evaluate(assignment: Map<LPNode, N>): N?
-
-    /** Creates a new (unbound) constraint: this >= other */
-    infix fun le(other: LPAffExpr<out Number>): Free<LPConstraint> {
+    /** Creates a new (free) constraint: this >= other */
+    context(BindCtx)
+    infix fun le(other: LPAffExpr<out Number>): LPConstraint {
         // tunnel into NumberInfo
-        val coerced = domain.coerce(other)
-        return { LP_LEZ(it, this - coerced) }
+        val coerced = dom.coerce(other)
+        return LP_LEZ(this - coerced)
     }
 
-    /** Creates a new (unbound) constraint: this >= other */
-    infix fun le(other: Number): Free<LPConstraint> = this le as_expr(domain.coerce_number(other))
+    /** Creates a new  constraint: this >= other */
+    context(BindCtx)
+    infix fun le(other: Number): LPConstraint = this le as_expr(dom.coerce_number(other))
 
-    /** Creates a new (unbound) constraint: this <= 0 */
-    val lez: Free<LPConstraint>
-        get() = { LP_LEZ(it, this) }
+    /** Creates a new  constraint: this <= 0 */
+    context(BindCtx)
+    val lez: LPConstraint get() = LP_LEZ(this)
 
-    /** Creates a new (unbound) constraint: this <= other */
-    infix fun ge(other: LPAffExpr<out Number>): Free<LPConstraint> = (-this) le (-other)
+    /** Creates a new  constraint: this <= other */
+    context(BindCtx)
+    infix fun ge(other: LPAffExpr<out Number>): LPConstraint = (-this) le (-other)
 
-    /** Creates a new (unbound) constraint: this <= other */
-    infix fun ge(other: Number): Free<LPConstraint> = this ge as_expr(domain.coerce_number(other))
+    /** Creates a new  constraint: this <= other */
+    context(BindCtx)
+    infix fun ge(other: Number): LPConstraint = this ge as_expr(dom.coerce_number(other))
 
-    /** Creates a new (unbound) constraint: this >= 0 */
-    val gez: Free<LPConstraint>
+    /** Creates a new  constraint: this >= 0 */
+    context(BindCtx)
+    val gez: LPConstraint
         get() = (-this).lez
 
-    /** Creates a new (unbound) constraint: this == other */
-    infix fun eq(other: LPAffExpr<N>): Free<LPConstraint> = { LP_EQZ(it, this - other) }
+    /** Creates a new (free) constraint: this == other */
+    context(BindCtx)
+    infix fun eq(other: LPAffExpr<N>): LPConstraint = LP_EQZ(this - other)
 
-    /** Creates a new (unbound) constraint this == other */
-    infix fun eq(other: Number): Free<LPConstraint> = this eq as_expr(domain.coerce_number(other))
+    /** Creates a new (free) constraint this == other */
+    context(BindCtx)
+    infix fun eq(other: Number): LPConstraint = this eq as_expr(dom.coerce_number(other))
 
-    /** Creates a new (unbound) constraint: this == 0 */
-    val eqz: Free<LPConstraint>
-        get() = this eq as_expr(domain.zero)
-}
-
-abstract class LPSumExpr<N : Number> : LPAffExpr<N> {
-    final override fun toString(): String {
-        if (this.terms.size <= 3) {
-            val out = terms.entries.joinToString(" + ") { "${it.value} ${it.key}" } + " + $constant"
-            return out.replace("+ -", "- ")
-        } else {
-            return "... + $constant"
-        }
-    }
+    /** Creates a new (free) constraint: this == 0 */
+    context(BindCtx)
+    val eqz: LPConstraint
+        get() = this eq as_expr(dom.zero)
 }

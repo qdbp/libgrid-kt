@@ -1,21 +1,20 @@
 package kulp.variables
 
-import kulp.Free
-import kulp.IntAffExpr
-import kulp.LPNode
-import kulp.named
+import kulp.BindCtx
+import kulp.expressions.IntAffExpr
 
-class LPBinary(node: LPNode) : PrimitiveLPInteger(node, 0, 1) {
-    operator fun not(): IntAffExpr = IntAffExpr(mapOf(this.node to -1), 1)
+context(BindCtx)
+class LPBinary : PrimitiveLPInteger(0, 1) {
+    operator fun not(): IntAffExpr = IntAffExpr(mapOf(this.path to -1), 1)
 
     infix fun and(other: LPBinary): IntAffExpr =
-        IntAffExpr(mapOf(this.node to 1, other.node to 1), -1)
+        IntAffExpr(mapOf(this.path to 1, other.path to 1), -1)
 
     infix fun or(other: LPBinary): IntAffExpr =
-        IntAffExpr(mapOf(this.node to 1, other.node to 1), 0)
+        IntAffExpr(mapOf(this.path to 1, other.path to 1), 0)
 
     infix fun implies(other: LPBinary): IntAffExpr =
-        IntAffExpr(mapOf(this.node to -1, other.node to 1), 0)
+        IntAffExpr(mapOf(this.path to -1, other.path to 1), 0)
 
     companion object {
         /**
@@ -24,15 +23,17 @@ class LPBinary(node: LPNode) : PrimitiveLPInteger(node, 0, 1) {
          * These are useful as special simplified cases in operations that by contract must return a
          * named variable.
          */
-        val true_pinned: Free<LPVar<Int>>
+        context(BindCtx)
+        val true_pinned: LPVar<Int>
             get() {
-                return { LPBinary(it) requiring { it eq 1 named "always_true" } }
+                return LPBinary().requiring("always_true") { it eq 1}
             }
 
         /** Makes a binary variable that is constrained to be always false */
-        val false_pinned: Free<LPVar<Int>>
+        context(BindCtx)
+        val false_pinned: LPVar<Int>
             get() {
-                return { LPBinary(it) requiring { it.eqz named "always_false" } }
+                return LPBinary().requiring("always_false") { it.eqz }
             }
     }
 }

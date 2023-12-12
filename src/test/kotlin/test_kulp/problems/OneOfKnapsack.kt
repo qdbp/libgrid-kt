@@ -1,8 +1,12 @@
 package test_kulp.problems
 
 import kotlin.test.Test
-import kulp.*
+import kulp.LPObjective
+import kulp.LPObjectiveSense
+import kulp.LPProblem
+import kulp.LPSolutionStatus
 import kulp.aggregates.LPOneOfN
+import mdspan.NDSpan
 import mdspan.NDSpanImpl
 import mdspan.lp_sum
 import test_kulp.ScipTester
@@ -25,33 +29,33 @@ private object OneOfKnapsackProblem : LPProblem() {
      * seven item slots of three choices per slot Each slot also has a "null item" to signify not
      * choosing it
      */
-    val item_values = NDSpanImpl.full_by(shape) { (0..100).random() }
-    val item_weights = NDSpanImpl.full_by(shape) { (0..100).random() }
+    val item_values: NDSpan<Int> =
+        NDSpanImpl.full_by(shape) { ix -> if (ix[1] < choices_per_slot) (0..100).random() else 0 }
+    val item_weights: NDSpan<Int> =
+        NDSpanImpl.full_by(shape) { ix -> if (ix[1] < choices_per_slot) (0..100).random() else 0 }
 
     // test multidimensional contraints here
-    val selectors =
-        node grow
-            {
-                // constrain last dimension
-                LPOneOfN(
-                    it,
-                    shape = listOf(num_slots, choices_per_slot + 1),
-                    constraint_subspace = listOf(1),
-                )
-            } named
-            "selectors"
-
-    val total_weight = selectors.hadamard(item_weights) { a, b -> a * b }.lp_sum()
-    val total_value = selectors.hadamard(item_values) { a, b -> a * b }.lp_sum()
-
-    init {
-        node += (total_weight le weight_limit) named "weight_limit"
+    val sel_arr = node {
+        // constrain last dimension
+        "selectors" {
+            LPOneOfN(
+                shape = listOf(num_slots, choices_per_slot + 1),
+                constraint_subspace = listOf(1),
+            )
+        }
     }
 
-    override fun get_objective(): LPObjective = null_objective
+    val total_weight = sel_arr.hadamard(item_weights) { a, b -> a * b }.lp_sum()
+    val total_value = sel_arr.hadamard(item_values) { a, b -> a * b }.lp_sum()
+
+    init {
+        node.bind("weight_limit") { total_weight le weight_limit }
+    }
+
+    override fun get_objective(): LPObjective = total_value to LPObjectiveSense.Maximize
 }
 
-class TestOneOfKnapsacku : ScipTester() {
+class TestOneOfKnapsack : ScipTester() {
 
     @Test
     fun test() {

@@ -64,25 +64,23 @@ private object WhiskasProblem : LPProblem() {
         )
 
     val nutrient_vars =
-        prices.keys.associateWith { nutrient -> node grow { LPNonnegativeReal(it) } named nutrient }
+        prices.keys.associateWith { nutrient -> node.bind(nutrient, ::LPNonnegativeReal) }
 
     private val max_nutrients = mapOf("fibre" to 2.00, "salt" to 0.40)
     private val min_nutrients = mapOf("protein" to 8.00, "fat" to 6.00)
 
     init {
         // total weight sums to 100g
-        node += nutrient_vars.values.lp_sum() eq 100.0 named "total_weight"
+        node.bind("total_weight") { nutrient_vars.values.lp_sum() eq 100.0 }
 
         // for each of the nutrients, the total amount of that nutrient provided by the food
         for (nutrient in listOf("protein", "fat", "fibre", "salt")) {
             val nutrient_map = nutritional_provision[nutrient]!!
             val total_nutrient =
                 nutrient_vars.map { (name, lpvar) -> nutrient_map[name]!! * lpvar }.lp_sum()
-            node grow
-                {
-                    LP_BND(it, total_nutrient, min_nutrients[nutrient], max_nutrients[nutrient])
-                } named
-                "${nutrient}_in_range"
+            node.bind("${nutrient}_in_range") {
+                LP_BND(total_nutrient, min_nutrients[nutrient], max_nutrients[nutrient])
+            }
         }
     }
 

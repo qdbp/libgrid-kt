@@ -1,6 +1,7 @@
 package kulp.variables
 
-import kulp.LPNode
+import kulp.BindCtx
 
 /** Unbounded primitive LP real. */
-class LPReal(node: LPNode, lb: Double?, ub: Double?) : PrimitiveLPReal(node, lb, ub)
+context(BindCtx)
+class LPReal(lb: Double?, ub: Double?) : PrimitiveLPReal(lb, ub)

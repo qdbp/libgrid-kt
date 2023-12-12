@@ -1,32 +1,25 @@
 package kulp.transforms
 
-import kulp.*
-import kulp.variables.LPBinary
-import kulp.variables.LPVar
-
-class Abs<N : Number>(node: LPNode, val x: LPAffExpr<N>) : LPTransform<N>(node, x.domain) {
-
-    override val lb = domain.zero
-    override val ub = null
-
-    override fun decompose_auxiliaries(node: LPNode, out: LPVar<N>, ctx: LPContext) {
-        require(ctx is BigMCapability)
-        // always need the int M here
-        val M = ctx.intM
-
-        val x_p = node grow { domain.newvar(it) } named "pos"
-        val x_n = node grow { domain.newvar(it) } named "neg"
-
-        val z_x_is_neg = node grow { LPBinary(it) } named "z_x_is_neg"
-
-        node +=
-            listOf(
-                x_p.gez named "xp_ge_0",
-                x_n.gez named "xm_ge_0",
-                x eq x_p - x_n named "xp_minus_xm_is_x",
-                out eq x_p + x_n named "out_bind",
-                x_p le (!z_x_is_neg * M) named "xp_z_switch",
-                x_n le (z_x_is_neg * M) named "xm_z_switch",
-            )
-    }
-}
+// class Abs<N : Number> private constructor(self: LPVar<N>, val x: LPAffExpr<N>) :
+//     LPTransform<N>(self) {
+//
+//     context(BindCtx)
+//     companion object {
+//         // workaround for KT-57183
+//         operator fun <N : Number> invoke(x: LPAffExpr<N>): LPAffExpr<N> = Abs(self_by_example(x),
+// x)
+//     }
+//
+//     override fun LPNode.decompose(ctx: LPContext) {
+//         require(ctx is BigMCapability)
+//         // always need the int M here
+//         val M = ctx.intM
+//         val x_p = "pos" { dom.newvar(lb = dom.zero) }
+//         val x_n = "neg" { dom.newvar(lb = dom.zero) }
+//         val z_x_is_neg = "z_x_is_neg"(::LPBinary)
+//         "xp_minus_xm_is_x" { x eq x_p - x_n }
+//         "out_bind" { avatar eq x_p + x_n }
+//         "xp_z_switch" { x_p le (!z_x_is_neg * M) }
+//         "xm_z_switch" { x_n le (z_x_is_neg * M) }
+//     }
+// }

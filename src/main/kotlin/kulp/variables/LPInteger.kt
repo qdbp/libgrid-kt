@@ -1,6 +1,7 @@
 package kulp.variables
 
-import kulp.LPNode
+import kulp.BindCtx
 
 /** A primitive LP integer without bounds */
-class LPInteger(node: LPNode, lb: Int?, ub: Int?) : PrimitiveLPInteger(node, lb, ub)
+context(BindCtx)
+class LPInteger(lb: Int?, ub: Int?) : PrimitiveLPInteger(lb, ub)

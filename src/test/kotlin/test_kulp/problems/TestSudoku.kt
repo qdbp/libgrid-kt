@@ -1,11 +1,12 @@
 package test_kulp.problems
 
-import com.google.ortools.Loader
-import com.google.ortools.linearsolver.MPSolver
 import kulp.*
-import kulp.adapters.ORToolsAdapter
 import kulp.aggregates.LPOneOfN
-import mdspan.*
+import kulp.expressions.RealAffExpr
+import mdspan.IDX
+import mdspan.SLC
+import mdspan.lp_sum
+import mdspan.ndindex
 import org.junit.jupiter.api.Test
 import test_kulp.ScipTester
 
@@ -15,12 +16,8 @@ private object SudokuProblem : LPProblem() {
         Pair(RealAffExpr(0.0), LPObjectiveSense.Minimize)
 
     // dimensions are [row, col, digit]
-    val indicators =
-        node grow
-            {
-                LPOneOfN(it, shape = listOf(9, 9, 9), constraint_subspace = listOf(2))
-            } named
-            "variables"
+    val ind_arr =
+        node { "x" { LPOneOfN(shape = listOf(9, 9, 9), constraint_subspace = listOf(2)) } }.arr
 
     val initial_list =
         listOf(
@@ -57,36 +54,38 @@ private object SudokuProblem : LPProblem() {
 
     // dimensions are [digit, row, col]
     init {
-        // rows
-        indicators.apply_subspace_indexed(listOf(0)) { ix, row ->
-            node += row.lp_sum() eq 1 named "one_per_row_${ix.lp_name}"
-        }
-        // columns
-        indicators.apply_subspace_indexed(listOf(1)) { ix, col ->
-            node += col.lp_sum() eq 1 named "one_per_col_${ix.lp_name}"
-        }
+        node {
+            // rows
+            ind_arr.apply_subspace_indexed(listOf(0)) { ix, row ->
+                "one_per_row_${ix.lp_name}" { row.lp_sum() eq 1 }
+            }
+            // columns
+            ind_arr.apply_subspace_indexed(listOf(1)) { ix, col ->
+                "one_per_col_${ix.lp_name}" { col.lp_sum() eq 1 }
+            }
 
-        // one per box -- no easy way to do this one!
-        for ((box, digit) in ndindex(9, 9)) {
-            val start_row = 3 * (box / 3)
-            val start_col = 3 * (box % 3)
-            val slice =
-                indicators.slice(
-                    SLC(start_row, start_row + 3),
-                    SLC(start_col, start_col + 3),
-                    IDX(digit),
-                )
-            node += slice.lp_sum() eq 1 named "one_per_box_${digit}_${box}"
-        }
-        // initial values
-        for ((digit, row, col) in initial_list) {
-            val ind = indicators[row - 1, col - 1, digit - 1]
-            node += (ind eq 1) named "initial_${digit}_${row}_${col}"
+            // one per box -- no easy way to do this one!
+            for ((box, digit) in ndindex(9, 9)) {
+                val start_row = 3 * (box / 3)
+                val start_col = 3 * (box % 3)
+                val slice =
+                    ind_arr.slice(
+                        SLC(start_row, start_row + 3),
+                        SLC(start_col, start_col + 3),
+                        IDX(digit),
+                    )
+                "one_per_box_${digit}_${box}" { slice.lp_sum() eq 1 }
+            }
+            // initial values
+            for ((digit, row, col) in initial_list) {
+                val ind = ind_arr[row - 1, col - 1, digit - 1]
+                "initial_${digit}_${row}_${col}" { (ind eq 1) }
+            }
         }
     }
 }
 
-class TestSudoku: ScipTester() {
+class TestSudoku : ScipTester() {
     @Test
     fun testSudoku() {
         val solution = solve_problem(SudokuProblem)

@@ -1,5 +1,6 @@
 package kulp.variables
 
-import kulp.LPNode
+import kulp.BindCtx
 
-class LPNonnegativeReal(name: LPNode) : PrimitiveLPReal(name, 0.0, null)
+context(BindCtx)
+class LPNonnegativeReal : PrimitiveLPReal(0.0, null)

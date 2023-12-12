@@ -1,7 +1,10 @@
 package mdspan
 
 fun Iterable<Int>.prod(): Int {
-    return this.reduce { acc, i -> acc * i }
+    return when (this.count()) {
+        0 -> 1
+        else -> this.reduce { acc, i -> acc * i }
+    }
 }
 
 fun <T> List<T>.mdspan(vararg shape: Int): NDSpanImpl<T> {

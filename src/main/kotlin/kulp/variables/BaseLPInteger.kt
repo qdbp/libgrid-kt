@@ -1,7 +1,14 @@
 package kulp.variables
 
-import kulp.Integral
-import kulp.LPNode
+import kulp.*
+import kulp.domains.Integral
+import kulp.expressions.IntAffExpr
 
 // base class for variable-like integers
-abstract class BaseLPInteger(node: LPNode) : LPVar<Int>(node, Integral)
+context(BindCtx)
+abstract class BaseLPInteger :
+    LPVar<Int>,
+    LPAffExpr<Int> by IntAffExpr(mapOf(unsafe_path_of_new_node to 1), 0),
+    NodeBoundRenderable() {
+    final override val dom: LPDomain<Int> = Integral
+}

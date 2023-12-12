@@ -6,9 +6,7 @@ import kulp.LPProblem
 import kulp.MipContext
 import kulp.adapters.ORToolsAdapter
 
-/**
- * Helper class to hide away SCIP boilerplate.
- */
+/** Helper class to hide away SCIP boilerplate. */
 open class ScipTester {
     protected fun solve_problem(prob: LPProblem): ORToolsAdapter.ORToolsSolution {
         val ctx = MipContext(1000.0)

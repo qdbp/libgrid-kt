@@ -1,8 +1,9 @@
 package kulp.transforms
 
 import kulp.*
-import kulp.variables.BaseLPInteger
+import kulp.expressions.lt
 import kulp.variables.LPBinary
+import kulp.variables.LPVar
 
 // TODO can we reify constraints in a generic way?
 /**
@@ -17,30 +18,39 @@ import kulp.variables.LPBinary
  */
 // TODO can we be more efficient?
 // TODO can we express this for Reals? the trouble is the M(1 - z) > x term...
-class IntEQZWitness(node: LPNode, val x: LPAffExpr<Int>) : BaseLPInteger(node) {
-    override val lb = 0
-    override val ub = null
+class IntEQZWitness private constructor(self: LPVar<Int>, val x: LPAffExpr<Int>) :
+    LPTransform<Int>(self) {
 
-    constructor(node: LPNode, lhs: LPAffExpr<Int>, rhs: LPAffExpr<Int>) : this(node, lhs - rhs)
+    companion object {
+        // workaround for KT-57183
+        context(BindCtx)
+        operator fun invoke(x: LPAffExpr<Int>): IntEQZWitness = IntEQZWitness(self_by_example(x), x)
 
+        context(BindCtx)
+        operator fun invoke(x: LPAffExpr<Int>, y: LPAffExpr<Int>): IntEQZWitness =
+            IntEQZWitness(self_by_example(x, lb = x.dom.zero), x - y)
+    }
+
+    context(NodeCtx)
     override fun decompose(ctx: LPContext) {
         require(ctx is BigMCapability)
         val M = ctx.intM
-        // diff less than zero
-        val zn = node grow { LPBinary(it) } named "z_dlz"
-        // diff greater than zero
-        val zp = node grow { LPBinary(it) } named "z_dgz"
-        // negative half, if x < 0
-        // we require z == 1 if x < 0: -Mz       <= x
-        zn.node += -M * zn le x named "bind_1"
-        //            z == 0 if x >= 0:  M(1 - z)  > x
-        zn.node += M * !zn gt x named "bind_0"
-        // positive half, if x >= 0
-        // we require z == 1 if x >  0:  Mz        >= x
-        zp.node += M * zp ge x named "bind_1"
-        //            z == 0 if x <= 0: -M(1 - z)  < x
-        zp.node += -M * !zp lt x named "bind_0"
-
-        node += this eq (1 - zn - zp) named "bind"
+        // case x < 0
+        val zn =
+            "z_dlz"(::LPBinary).branch {
+                // z == 1 if x < 0: -Mz       <= x
+                "bind_1" { -M * it le x }
+                // z == 0 if x >= 0:  M(1 - z)  > x
+                "bind_0" { M * !it ge x }
+            }
+        // case x >= 0
+        val zp =
+            "z_dgz"(::LPBinary).branch {
+                // z == 1 if x >  0:  Mz        >= x
+                "bind_1" { M * it ge x }
+                // z == 0 if x <= 0: -M(1 - z)  < x
+                "bind_0" { -M * !it lt x }
+            }
+        "bind" { y eq (1 - zn - zp) }
     }
 }

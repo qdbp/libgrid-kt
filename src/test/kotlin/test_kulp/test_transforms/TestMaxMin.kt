@@ -2,22 +2,24 @@ package test_kulp.test_transforms
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kulp.*
+import kulp.LPAffExpr
+import kulp.LPObjectiveSense
+import kulp.LPSolutionStatus
 import kulp.transforms.Max
 import kulp.transforms.Min
 import kulp.variables.LPInteger
 import test_kulp.ScipTester
-import test_kulp.TestProblem
+import test_kulp.TestLPProblem
 
-private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : TestProblem() {
+private class IntMaxMinProblem(val do_max: Boolean, val do_minimize: Boolean) : TestLPProblem() {
 
-    val x1 = node + { LPInteger(it, null, 10) } named "x1" requiring { it eq -3 named "x1_pin" }
-    val x2 = node + { LPInteger(it, -10, 10) } named "x2" requiring { it eq 5 named "x2_pin" }
-    val x3 = node + { LPInteger(it, -10, null) } named "x3" requiring { it eq 7 named "x3_pin" }
+    val x1 = node.bind("x1") { LPInteger(null, 10).requiring("x1_pin") { it eq -3 } }
+    val x2 = node.bind("x2") { LPInteger(-10, 10).requiring("x2_pin") { it eq 5 } }
+    val x3 = node.bind("x3") { LPInteger(-10, null).requiring("x3_pin") { it eq 7 } }
 
     val xs = listOf(x1, x2, x3)
 
-    val yt = node grow { if (do_max) Max(it, xs) else Min(it, xs) } named "yt"
+    val yt = node.bind("yt") { if (do_max) Max(xs) else Min(xs) }
 
     override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> {
         return if (do_minimize) Pair(yt, LPObjectiveSense.Minimize)

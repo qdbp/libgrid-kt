@@ -1,18 +1,17 @@
 package kulp
 
+import kulp.expressions.RealAffExpr
+
 typealias LPObjective = Pair<LPAffExpr<*>, LPObjectiveSense>
 
 /** The root renderable */
-abstract class LPProblem private constructor(node: LPNode) : LPRenderable(node) {
+abstract class LPProblem private constructor(node: LPNode) : RootRenderable(node) {
 
     companion object {
         val null_objective: LPObjective = Pair(RealAffExpr(0.0), LPObjectiveSense.Minimize)
     }
 
-    constructor() : this(LPNode.new_root()) {
-        @Suppress("LeakingThis")
-        node.renderable = this
-    }
+    constructor() : this(LPNode.new_root())
 
     /**
      * We don't separate variables from constraints here because these are often intimately coupled
@@ -23,5 +22,6 @@ abstract class LPProblem private constructor(node: LPNode) : LPRenderable(node) 
 
     // we don't force problems to implement decompose, since it's assumed they're never primitive
     // and can just define their constituents as fields
+    context(NodeCtx)
     override fun decompose(ctx: LPContext) {}
 }

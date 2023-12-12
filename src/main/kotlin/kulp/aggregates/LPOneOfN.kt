@@ -1,47 +1,51 @@
 package kulp.aggregates
 
-import kulp.LPAggregate
+import kulp.BindCtx
 import kulp.LPContext
 import kulp.LPNode
-import kulp.LPRenderable
+import kulp.NodeCtx
 import kulp.variables.LPBinary
 import mdspan.NDSpan
-import mdspan.NDSpanImpl
 import mdspan.lp_sum
 
 /**
  * The archetypal aggregate!
  *
  * This class models the fundamental "one of N" constraint, where exactly one of the binary
- * variables must be true.
+ * variables must be true from among a set.
+ *
+ * It is backed by a multidimensional array of binary variables, and the constraint is applied to an
+ * arbitrary subspace of the array. This flexibility means you should very rarely need to make lists
+ * of this class.
  */
-class LPOneOfN(
+class LPOneOfN
+private constructor(
     node: LPNode,
-    vars: NDSpan<LPBinary>,
     // by default, we constrain on the last axis, since this tends to be how
-    constraint_subspace: List<Int> = listOf(vars.shape.size - 1),
-) : LPAggregate<LPBinary>(node, vars, constraint_subspace) {
+    shape: List<Int>,
+    constraint_subspace: List<Int> = listOf(shape.size - 1),
+) : LPAggregate<LPBinary>(node, shape, { LPBinary() }, constraint_subspace) {
 
-    constructor(
-        node: LPNode,
-        shape: List<Int>,
-        constraint_subspace: List<Int> = listOf(shape.size - 1),
-    ) : this(
-        node,
-        NDSpanImpl.full_by(shape) { ndix -> node grow { LPBinary(it) } named ndix },
-        constraint_subspace
-    )
+    companion object {
+        // extremely cheesy workaround for KT-57183
+        context(BindCtx)
+        operator fun invoke(
+            shape: List<Int>,
+            constraint_subspace: List<Int> = listOf(shape.size - 1)
+        ) = LPOneOfN(take(), shape, constraint_subspace)
 
-    constructor(node: LPNode, n: Int) : this(node, listOf(n))
+        context(BindCtx)
+        operator fun invoke(n: Int) = invoke(listOf(n))
+    }
 
-    override fun decompose_subarray(
-        ctx: LPContext,
-        subspace_node: LPNode,
-        subarray: NDSpan<LPBinary>
-    ): LPRenderable {
-        val sum = subarray.lp_sum()
-        val lp_eq = subspace_node grow (sum eq 1) named "one_of_n_decompose_subarr"
-        println("XXXXXXXXXXXXXXXXXXXXXX$lp_eq")
-        return lp_eq
+    init {
+        require(constraint_subspace.isNotEmpty()) {
+            "Creating with 0D constraint subspace -- this is just an array of LPBinaries."
+        }
+    }
+
+    context(NodeCtx)
+    override fun decompose_subarray(ctx: LPContext, subarray: NDSpan<LPBinary>) {
+        "one_of_n" { subarray.lp_sum() eq 1 }
     }
 }

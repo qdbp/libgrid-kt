@@ -7,7 +7,12 @@ import com.google.ortools.linearsolver.MPSolver.ResultStatus
 import com.google.ortools.linearsolver.MPVariable
 import kulp.*
 import kulp.constraints.LP_LEZ
-import kulp.variables.*
+import kulp.domains.Integral
+import kulp.domains.Real
+import kulp.variables.BaseLPInteger
+import kulp.variables.BaseLPReal
+import kulp.variables.LPBinary
+import kulp.variables.LPVar
 
 context(MPSolver)
 class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
@@ -15,7 +20,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
 
     class ORToolsSolution(
         private val objective_value: Double?,
-        private val solved_value_map: Map<LPNode, Double>,
+        private val solved_value_map: Map<LPPath, Double>,
         private val ortools_status: ResultStatus
     ) : LPSolution() {
         override fun status(): LPSolutionStatus {
@@ -35,8 +40,8 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 ?: throw Exception("Objective value not available. Check status first!")
         }
 
-        override fun value_of(name: LPNode): Double? {
-            return solved_value_map[name]
+        override fun value_of(path: LPPath): Double? {
+            return solved_value_map[path]
         }
 
         override fun toString(): String {
@@ -44,8 +49,8 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         }
     }
 
-    private val known_variables = mutableMapOf<LPNode, Pair<MPVariable, LPVar<*>>>()
-    private val known_constraints = mutableMapOf<LPNode, Pair<MPConstraint, LPConstraint>>()
+    private val known_variables = mutableMapOf<LPPath, Pair<MPVariable, LPVar<*>>>()
+    private val known_constraints = mutableMapOf<LPPath, Pair<MPConstraint, LPConstraint>>()
     private var objective: MPObjective? = null
 
     context(MPSolver)
@@ -53,9 +58,9 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         // right now we skip duplicate variables, because they might be rendered multipled times
         // with this not necessarily indicating an error. However, we might want to add a strict
         // mode?
-        val vnode = variable.node
-        if (vnode in known_variables) return
-        val ortools_name = vnode.full_path()
+        val path = variable.node.path
+        if (path in known_variables) throw IllegalArgumentException("Duplicate variable $path")
+        val ortools_name = path.render()
 
         val ortools_var =
             when (variable) {
@@ -76,21 +81,22 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 // for anything else we make a "generic" variable and trust that the intrinsics
                 // have been added during the rendering pass!
                 else ->
-                    when (variable.domain) {
-                        Real ->
+                    when (variable.dom) {
+                        is Real ->
                             makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                        Integral->
+                        is Integral ->
                             makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
+                        else -> throw NotImplementedError("Unknown domain ${variable}")
                     }
             }
-        known_variables[vnode] = Pair(ortools_var, variable)
+        known_variables[path] = Pair(ortools_var, variable)
     }
 
     context(MPSolver)
     override fun consume_constraint(constraint: LPConstraint) {
-        val vnode = constraint.node
-        if (vnode in known_constraints) return
-        val ortools_name = vnode.full_path()
+        val path = constraint.node.path
+        if (path in known_constraints) throw IllegalArgumentException("Duplicate constraint $path")
+        val ortools_name = path.render()
 
         val ortools_constraint =
             when (constraint) {
@@ -100,19 +106,22 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                             known_variables[variable]?.let {
                                 setCoefficient(it.first, coef.toDouble())
                             }
-                                ?: throw IllegalArgumentException(
-                                    "Unknown variable $variable in constraint ${constraint}. ${constraint.lhs.terms.keys} Bug??."
-                                )
+                                ?: run {
+                                    problem.node.dump_full_node_dfs()
+                                    throw IllegalArgumentException(
+                                        "Unknown variable $variable in constraint ${constraint}. ${constraint.lhs.terms.keys} Bug??."
+                                    )
+                                }
                         }
                         setBounds(-MPSolver.infinity(), -constraint.lhs.constant.toDouble())
-                        known_constraints[vnode] = Pair(this, constraint)
+                        known_constraints[path] = Pair(this, constraint)
                     }
                 }
                 else -> {
                     return
                 }
             }
-        known_constraints[vnode] = Pair(ortools_constraint, constraint)
+        known_constraints[path] = Pair(ortools_constraint, constraint)
     }
 
     context(MPSolver)
@@ -121,7 +130,13 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         for (term in objective.terms.entries) {
             known_variables[term.key]?.let {
                 ortools_objective.setCoefficient(it.first, term.value)
-            } ?: throw IllegalArgumentException("Unknown variable ${term.key} in objective. Bug??.")
+            }
+                ?: run {
+                    problem.node.dump_full_node_dfs()
+                    throw IllegalArgumentException(
+                        "Unknown variable ${term.key} in objective. Bug??."
+                    )
+                }
         }
         when (sense) {
             LPObjectiveSense.Minimize -> ortools_objective.setMinimization()
@@ -137,7 +152,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
         val result = solve()
         val value_map =
             known_variables
-                .map { Pair(it.value.second.node, it.value.first.solutionValue()) }
+                .map { Pair(it.value.second.node.path, it.value.first.solutionValue()) }
                 .toMap()
         return ORToolsSolution(
             objective_value = objective?.value(),

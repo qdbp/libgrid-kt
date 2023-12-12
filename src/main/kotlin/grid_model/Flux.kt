@@ -1,3 +1,3 @@
 package grid_model
 
-interface Flux {}
+interface Flux

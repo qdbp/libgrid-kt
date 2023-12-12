@@ -1,25 +1,25 @@
 package test_kulp.test_transforms
 
 import kotlin.test.assertEquals
-import kulp.*
+import kulp.LPAffExpr
+import kulp.LPObjectiveSense
+import kulp.LPSolutionStatus
 import kulp.transforms.IntEQZWitness
-import kulp.variables.BaseLPInteger
 import kulp.variables.LPInteger
 import org.junit.jupiter.api.Test
 import test_kulp.ScipTester
-import test_kulp.TestProblem
+import test_kulp.TestLPProblem
 
 private class ReifiedEqProblem(
     var lhs: LPAffExpr<Int>? = null,
     var rhs: LPAffExpr<Int>? = null,
     var objective: LPAffExpr<Int>? = null
-) : TestProblem() {
+) : TestLPProblem() {
 
     var z: IntEQZWitness? = null
 
     fun mk_z(): IntEQZWitness {
-        z = node grow { IntEQZWitness(it, lhs!!, rhs!!) } named "z"
-        node.dump_full_tree_dfs().forEach { println(it) }
+        z = node { "z" { IntEQZWitness(lhs!!, rhs!!) } }
         return z!!
     }
 
@@ -37,8 +37,8 @@ class TestIntEQZWitness : ScipTester() {
     @Test
     fun testDisjointIntsUnconstrainedFeasible() {
         val prob = ReifiedEqProblem()
-        val x = prob.root() grow { LPInteger(it, 0, 10) } named "x"
-        val y = prob.root() grow { LPInteger(it, 15, 20) } named "y"
+        val x = prob.root().bind("x") { LPInteger(0, 10) }
+        val y = prob.root().bind("y") { LPInteger(15, 20) }
         prob.lhs = x
         prob.rhs = y
         prob.mk_z()
@@ -56,13 +56,13 @@ class TestIntEQZWitness : ScipTester() {
     @Test
     fun testDisjointIntsConstrainedInfeasible() {
         val prob = ReifiedEqProblem()
-        val x = prob.root() grow { LPInteger(it, 0, 10) } named "x"
-        val y = prob.root() grow { LPInteger(it, 15, 20) } named "y"
+        val x = prob.root().bind("x") { LPInteger(0, 10) }
+        val y = prob.root().bind("y") { LPInteger(15, 20) }
         prob.lhs = x
         prob.rhs = y
         val z = prob.mk_z()
         prob.objective = prob.lhs!! + prob.rhs!!
-        prob.root() += z eq 1 named "force_equal"
+        prob.root().bind("force_equal") { z eq 1 }
 
         val solution = solve_problem(prob)
 
@@ -73,14 +73,14 @@ class TestIntEQZWitness : ScipTester() {
     @Test
     fun testOverlappingIntsConstrainedFeasible() {
         val prob = ReifiedEqProblem()
-        val x = prob.root() grow { LPInteger(it, 0, 10) } named "x"
-        val y = prob.root() grow { LPInteger(it, 10, 20) } named "y"
+        val x = prob.root().bind("x") { LPInteger(0, 10) }
+        val y = prob.root().bind("y") { LPInteger(10, 20) }
         prob.lhs = x
         prob.rhs = y
         val z = prob.mk_z()
         prob.objective = y - x
 
-        prob.root() += prob.z!! eq 1 named "force_equal"
+        prob.root().bind("force_equal") { prob.z!! eq 1 }
         val solution = solve_problem(prob)
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
@@ -94,15 +94,15 @@ class TestIntEQZWitness : ScipTester() {
     @Test
     fun testFeasibleWithExprs() {
         val prob = ReifiedEqProblem()
-        val x = prob.root() grow { LPInteger(it, 0, 5) } named "x"
-        val y = prob.root() grow { LPInteger(it, 15, 20) } named "y"
-        val w = prob.root() grow { LPInteger(it, 0, 10) } named "w"
+        val x = prob.root().bind("x") { LPInteger(0, 5) }
+        val y = prob.root().bind("y") { LPInteger(15, 20) }
+        val w = prob.root().bind("w") { LPInteger(0, 10) }
         prob.lhs = x + w
         prob.rhs = y - w
         val z = prob.mk_z()
         prob.objective = -w
 
-        prob.root() += z eq 1 named "force_equal"
+        prob.root().bind("force_equal") { z eq 1 }
 
         val solution = solve_problem(prob)
 

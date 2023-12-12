@@ -3,6 +3,8 @@ package kulp
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
+import kulp.expressions.IntAffExpr
+import kulp.expressions.RealAffExpr
 import kulp.variables.LPVar
 import nullable_fold
 
@@ -67,7 +69,7 @@ inline operator fun <reified N : Number> N.minus(other: N): N {
 // int specializations
 @Suppress("UNCHECKED_CAST")
 inline fun <reified N : Number> Iterable<LPAffExpr<N>>.lp_sum(): LPAffExpr<N> {
-    val sum_terms: MutableMap<LPNode, N> = mutableMapOf()
+    val sum_terms: MutableMap<LPPath, N> = mutableMapOf()
     var constant = (N::class::zero)()
 
     for (term in this) {
@@ -129,14 +131,14 @@ fun <N : Number> List<LPVar<N>>.lb(): N? {
     when (this.size) {
         0 -> return null
     }
-    val wrapper = this[0]
-    return this.map { it.lb }.nullable_fold(wrapper.domain.max)
+    val domain = this[0].dom
+    return this.map { it.lb }.nullable_fold(domain.max)
 }
 
 fun <N : Number> List<LPVar<N>>.ub(): N? {
     when (this.size) {
         0 -> return null
     }
-    val wrapper = this[0]
-    return this.map { it.ub }.nullable_fold(wrapper.domain.min)
+    val domain = this[0].dom
+    return this.map { it.ub }.nullable_fold(domain.min)
 }
