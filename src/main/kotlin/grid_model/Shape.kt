@@ -4,8 +4,8 @@ import grid_model.dimension.BBox
 import grid_model.dimension.Dim
 import grid_model.dimension.Vec
 import grid_model.shapes.RectD
-import ivory.order.join
-import ivory.order.meet
+import ivory.order.BoundedLattice.Companion.join
+import ivory.order.BoundedLattice.Companion.meet
 
 fun interface BaseShape<D : Dim<D>> {
     fun compute_points(): Set<Vec<D>>

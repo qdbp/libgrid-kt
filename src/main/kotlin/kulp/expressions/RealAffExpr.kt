@@ -1,15 +1,14 @@
 package kulp.expressions
 
 import kulp.LPAffExpr
-import kulp.LPDomain
 import kulp.LPPath
-import kulp.domains.Real
+import kulp.domains.LPRealDomain
 
 /** Represents an affine expression with real coefficients, constants and variables. */
 data class RealAffExpr(override val terms: Map<LPPath, Double>, override val constant: Double) :
-    LPSumExpr<Double>(), LPDomain<Double> by Real {
+    LPSumExpr<Double>() {
 
-    override val dom = Real
+    override val dom = LPRealDomain
 
     constructor(constant: Number) : this(mapOf(), constant.toDouble())
 

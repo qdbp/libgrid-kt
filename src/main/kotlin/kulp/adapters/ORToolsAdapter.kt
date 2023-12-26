@@ -7,8 +7,8 @@ import com.google.ortools.linearsolver.MPSolver.ResultStatus
 import com.google.ortools.linearsolver.MPVariable
 import kulp.*
 import kulp.constraints.LP_LEZ
-import kulp.domains.Integral
-import kulp.domains.Real
+import kulp.domains.LPIntegralDomain
+import kulp.domains.LPRealDomain
 import kulp.variables.BaseLPInteger
 import kulp.variables.BaseLPReal
 import kulp.variables.LPBinary
@@ -82,9 +82,9 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 // have been added during the rendering pass!
                 else ->
                     when (variable.dom) {
-                        is Real ->
+                        is LPRealDomain ->
                             makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                        is Integral ->
+                        is LPIntegralDomain ->
                             makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                         else -> throw NotImplementedError("Unknown domain ${variable}")
                     }

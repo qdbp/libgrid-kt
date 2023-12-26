@@ -1,18 +1,20 @@
 package kulp.domains
 
-import kotlin.reflect.KClass
+import ivory.algebra.IntRing
+import ivory.order.IntOrder
 import kulp.*
-import kulp.expressions.IntAffExpr
 import kulp.variables.LPInteger
 import kulp.variables.LPVar
 
-object Integral : LPDomainImpl<Int>() {
-    override val klass: KClass<Int> = Int::class
-    override val zero: Int = 0
-    override val one: Int = 1
-
-    override fun unsafe_node_as_expr(node: LPNode): LPAffExpr<Int> =
-        IntAffExpr(mapOf(node.path to 1), 0)
+object LPIntegralDomain :
+    LPDomain<Int>(
+        klass = Int::class,
+        ring = IntRing,
+        order = IntOrder,
+    ) {
+    // override val klass: KClass<Int> = Int::class
+    // override val zero: Int = 0
+    // override val one: Int = 1
 
     context(BindCtx)
     override fun newvar(lb: Int?, ub: Int?): LPVar<Int> = LPInteger(lb, ub)
@@ -40,10 +42,4 @@ object Integral : LPDomainImpl<Int>() {
             else -> throw NotImplementedError()
         }
     }
-
-    override val max: (Int, Int) -> Int = { a, b -> maxOf(a, b) }
-    override val min: (Int, Int) -> Int = { a, b -> minOf(a, b) }
-
-    override val mul: (n: Int, m: Int) -> Int = { n, m -> n * m }
-    override val add: (n: Int, m: Int) -> Int = { n, m -> n + m }
 }

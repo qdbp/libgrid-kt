@@ -81,7 +81,7 @@ class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
             val tiles = ptc.tiles_of(plane)
             // + 1, since we need to add a "no tile" option. By convention, this will be the
             // last lpvar in the one-of-n aggregate. No one outside this class should care.
-            val one_of_n = "${plane}_tiles" {
+            val one_of_n = "tile_${plane}" {
                 // constrained along last dim by default
                 LPOneOfN(gp.shape + (tiles.size + 1))
             }

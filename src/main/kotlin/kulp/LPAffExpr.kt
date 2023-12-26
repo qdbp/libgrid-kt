@@ -2,6 +2,7 @@ package kulp
 
 import kulp.constraints.LP_EQZ
 import kulp.constraints.LP_LEZ
+import kulp.domains.LPDomain
 import kulp.expressions.IntAffExpr
 import kulp.expressions.RealAffExpr
 import kulp.variables.LPVar
@@ -13,7 +14,7 @@ import kulp.variables.LPVar
  *
  * The base interface parameterizes over the numerical domain of the expression.
  */
-interface LPAffExpr<N : Number> {
+interface LPAffExpr<N : Number>: LPBoundable<N> {
 
     val dom: LPDomain<N>
     val terms: Map<LPPath, N>

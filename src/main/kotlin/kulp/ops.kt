@@ -1,12 +1,12 @@
 package kulp
 
-import kotlin.math.abs
-import kotlin.math.roundToInt
-import kotlin.reflect.KClass
 import kulp.expressions.IntAffExpr
 import kulp.expressions.RealAffExpr
 import kulp.variables.LPVar
 import nullable_fold
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.reflect.KClass
 
 // genericized operations on numbers
 @Suppress("UnusedReceiverParameter")
@@ -132,7 +132,7 @@ fun <N : Number> List<LPVar<N>>.lb(): N? {
         0 -> return null
     }
     val domain = this[0].dom
-    return this.map { it.lb }.nullable_fold(domain.max)
+    return this.map { it.lb }.nullable_fold(domain::max)
 }
 
 fun <N : Number> List<LPVar<N>>.ub(): N? {
@@ -140,5 +140,5 @@ fun <N : Number> List<LPVar<N>>.ub(): N? {
         0 -> return null
     }
     val domain = this[0].dom
-    return this.map { it.ub }.nullable_fold(domain.min)
+    return this.map { it.ub }.nullable_fold(domain::min)
 }

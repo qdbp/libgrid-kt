@@ -40,15 +40,15 @@ private constructor(
         context(BindCtx)
         fun clip(x: LPAffExpr<Int>, clip_lb: Int?, clip_ub: Int?): LPVar<Int> {
             return when (x) {
-                is LPBounded<*> -> {
-                    val _clb = clip_lb ?: Int.MIN_VALUE
-                    val _cub = clip_ub ?: Int.MAX_VALUE
-                    when {
-                        _clb <= (x.lb as Int) && _cub >= (x.ub as Int) -> x.reify()
-                        _clb > (x.ub as Int) || _cub < (x.lb as Int) -> throw ProvenInfeasible()
-                        else -> invoke(x, _clb, _cub)
-                    }
-                }
+                // is LPBounded<*> -> {
+                //     val _clb = clip_lb ?: Int.MIN_VALUE
+                //     val _cub = clip_ub ?: Int.MAX_VALUE
+                //     when {
+                //         _clb <= (x.lb as Int) && _cub >= (x.ub as Int) -> x.reify()
+                //         _clb > (x.ub as Int) || _cub < (x.lb as Int) -> throw ProvenInfeasible()
+                //         else -> invoke(x, _clb, _cub)
+                //     }
+                // }
                 else -> IntClip(x, clip_lb, clip_ub)
             }
         }

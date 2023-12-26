@@ -1,5 +1,7 @@
 package kulp
 
+import kulp.variables.LPVar
+
 const val LP_NAMESPACE_SEP = "."
 
 /**
@@ -16,8 +18,8 @@ typealias NodeCtx = LPNode.NodeCtx
 
 typealias BindCtx = LPNode.BindCtx
 
-class LPPath(private val segments: List<String>) {
-    fun render(sep: String = LP_NAMESPACE_SEP): String = segments.drop(1).joinToString(sep)
+class LPPath(val segments: List<String>) {
+    fun render(sep: String = LP_NAMESPACE_SEP): String = segments.joinToString(sep)
 
     override fun toString(): String = render()
 
@@ -68,7 +70,25 @@ private constructor(val name: String, private val parent: LPNode?, private var d
 
     private val children: MutableMap<String, LPNode> = mutableMapOf()
 
-    fun root(): LPNode = parent?.root() ?: this
+    private val root: LPNode
+        get() = parent?.root ?: this
+
+    fun find_rel(path: LPPath): LPNode? {
+        var cur: LPNode = this
+        for (segment in path.segments) {
+            cur = cur.children[segment] ?: return null
+        }
+        return cur
+    }
+
+    fun find_var(path: LPPath): LPVar<*>? {
+        return find(path)?.let {
+            if (it.data !is Data) return null
+            it.renderable as? LPVar<*>
+        }
+    }
+
+    fun find(path: LPPath): LPNode? = root.find_rel(path)
 
     companion object {
         fun new_root(): LPNode {
@@ -127,6 +147,9 @@ private constructor(val name: String, private val parent: LPNode?, private var d
         // some infix hipster sugar
         operator fun <T : LPRenderable> String.invoke(op: (BindCtx).() -> T): T =
             node.bind(this, op)
+
+        val root
+            get() = node.root
     }
 
     open class BindCtx(node: LPNode) : NodeCtx(node) {
@@ -134,7 +157,13 @@ private constructor(val name: String, private val parent: LPNode?, private var d
             require(node.data is UninitializedData)
         }
 
+        private var used_name: Boolean = false
+
+        fun used_name(): Boolean = used_name
+
         private var have_claimed = false
+
+        fun have_claimed(): Boolean = have_claimed
 
         /**
          * Take the node from the binding context. Exactly one take() must be issued per bind()
@@ -150,15 +179,15 @@ private constructor(val name: String, private val parent: LPNode?, private var d
             return node
         }
 
-        fun have_claimed(): Boolean = have_claimed
-
         // it's not actually unsafe, but this really only needs to be used in two
         // very technical places, so we maximally uglify it and give it a scary name.
-        // The way this would be bad is if we use this path and then do not `take()` the node, but
-        // that will throw an exception directly for failing to call take(), so there's no added
-        // unsoundness.
+        // The way this would be bad is if we use this path and then do not `take()` the node,
+        // letting it revert to structural.
         val unsafe_path_of_new_node: LPPath
-            get() = node.path
+            get() {
+                used_name = true
+                return node.path
+            }
     }
 
     /**
@@ -180,6 +209,11 @@ private constructor(val name: String, private val parent: LPNode?, private var d
                     // TODO might be unreachable
                     throw IllegalStateException(
                         "Renderable $renderable did not claim its node but got it anyway??"
+                    )
+                }
+                if (used_name()) {
+                    throw IllegalStateException(
+                        "Accessed path of node $new_node without claiming it. Likely broken."
                     )
                 }
                 // it's legal to fail to claim in a binding context -- the node is implicitly
@@ -298,15 +332,15 @@ private constructor(val name: String, private val parent: LPNode?, private var d
     val path: LPPath
         get() {
             val out = mutableListOf<String>()
-            var cur: LPNode? = this
-            while (cur != null) {
+            var cur: LPNode = this
+            while (cur.parent != null) {
                 out.add(
                     when (this.data) {
                         is Root -> ""
                         else -> cur.name
                     }
                 )
-                cur = cur.parent
+                cur.parent?.let { cur = it } ?: break
             }
             return LPPath(out.reversed())
         }

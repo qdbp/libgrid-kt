@@ -32,7 +32,7 @@ class NewEntityContext<D : Dim<D>>(val dim: D, val name: String) {
             override fun <P : Plane> get_extent_within(plane: P): Extent<D>? =
                 plane_extent_map[plane]
 
-            override fun toString(): String = "Entity[$name]"
+            override fun toString(): String = "enti_$name"
 
             override fun hashCode(): Int = (Entity<*>::javaClass to name).hashCode()
 

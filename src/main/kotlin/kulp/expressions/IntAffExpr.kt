@@ -1,14 +1,14 @@
 package kulp.expressions
 
 import kulp.LPAffExpr
-import kulp.LPDomain
+import kulp.domains.LPDomain
 import kulp.LPPath
-import kulp.domains.Integral
+import kulp.domains.LPIntegralDomain
 
 data class IntAffExpr(override val terms: Map<LPPath, Int>, override val constant: Int) :
-    LPSumExpr<Int>(), LPDomain<Int> by Integral {
+    LPSumExpr<Int>() {
 
-    override val dom: LPDomain<Int> = Integral
+    override val dom: LPDomain<Int> = LPIntegralDomain
 
     constructor(constant: Number) : this(mapOf(), constant.toInt())
 

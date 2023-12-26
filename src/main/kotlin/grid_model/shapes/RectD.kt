@@ -7,7 +7,7 @@ import grid_model.dimension.Dim
 import grid_model.dimension.Vec
 import grid_model.dimension.Vec.Companion.vec
 import grid_model.dimension.Vec.Companion.zvec
-import ivory.order.Poset.Companion.pleq
+import ivory.order.PartialOrder.Companion.pleq
 
 open class RectD<D : Dim<D>>(val lower: Vec<D>, val upper: Vec<D>, dim: D) : Shape<D>(dim) {
     constructor(upper: Vec<D>, dim: D) : this(dim.zvec(), upper, dim)

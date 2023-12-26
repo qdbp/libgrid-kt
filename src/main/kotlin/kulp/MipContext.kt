@@ -2,9 +2,9 @@ package kulp
 
 import kotlin.math.roundToInt
 import kulp.constraints.LP_LEZ
-import kulp.domains.Integral
-import kulp.domains.LPDomainImpl
-import kulp.domains.Real
+import kulp.domains.LPDomain
+import kulp.domains.LPIntegralDomain
+import kulp.domains.LPRealDomain
 import kulp.variables.PrimitiveLPInteger
 import kulp.variables.PrimitiveLPReal
 
@@ -62,10 +62,10 @@ interface BigMCapability : SolverCapability {
         get() = bigM.roundToInt()
 
     @Suppress("UNCHECKED_CAST")
-    fun <N : Number> getM(domain: LPDomainImpl<N>): N =
+    fun <N : Number> getM(domain: LPDomain<N>): N =
         when (domain) {
-            Integral -> intM
-            Real -> bigM
+            LPIntegralDomain -> intM
+            LPRealDomain -> bigM
         }
             as N
 }

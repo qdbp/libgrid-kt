@@ -19,12 +19,12 @@ import test_kulp.ScipTester
  *
  * First nontrivial problem with more than one entity and actual constraints.
  */
-private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x2: Boolean) :
+private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x1: Boolean) :
     TestGridProblem<D2>(D2) {
 
     companion object {
         private val Sq1x1 = entity(D2, "Sq1x1") { Onto { Rect2(1, 1).fermionic } }
-        private val Sq2x2 = entity(D2, "Sq2x2") { Onto { Rect2(2, 2).fermionic } }
+        private val Sq2x1 = entity(D2, "Sq2x2") { Onto { Rect2(2, 1).fermionic } }
     }
 
     override val bounds = dim.vec(size - 1, size - 1).to_origin_bb()
@@ -32,7 +32,7 @@ private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x2: Boo
     override fun get_entity_set(): Set<Entity<D2>> {
         val out = mutableSetOf<Entity<D2>>()
         if (do_1x1) out += Sq1x1
-        if (do_2x2) out += Sq2x2
+        if (do_2x1) out += Sq2x1
         return out
     }
 
@@ -41,7 +41,7 @@ private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x2: Boo
     override fun get_valuation_predicates(): Map<BAGP, Double> {
         val out = mutableMapOf<BAGP, Double>()
         if (do_1x1) out += entity_count_valuation(Sq1x1, 1.0)
-        if (do_2x2) out += entity_count_valuation(Sq2x2, 5.0)
+        if (do_2x1) out += entity_count_valuation(Sq2x1, 5.0)
         return out
     }
 }
@@ -50,7 +50,7 @@ class TestP1 : ScipTester() {
 
     @Test
     fun test_1x1_sq1_only() {
-        val gp = P1Problem(1, do_1x1 = true, do_2x2 = false)
+        val gp = P1Problem(1, do_1x1 = true, do_2x1 = false)
         assertEquals(1, gp.bounds.size)
 
         val adapter = LPGridAdapter(gp)
@@ -63,7 +63,7 @@ class TestP1 : ScipTester() {
 
     @Test
     fun test_1x1_sq2_only() {
-        val gp = P1Problem(1, do_1x1 = false, do_2x2 = true)
+        val gp = P1Problem(1, do_1x1 = false, do_2x1 = true)
         assertEquals(1, gp.bounds.size)
 
         val adapter = LPGridAdapter(gp)
@@ -76,7 +76,7 @@ class TestP1 : ScipTester() {
 
     @Test
     fun test_1x1_sq1_sq2() {
-        val gp = P1Problem(1, do_1x1 = true, do_2x2 = true)
+        val gp = P1Problem(1, do_1x1 = true, do_2x1 = true)
         assertEquals(1, gp.bounds.size)
 
         val adapter = LPGridAdapter(gp)

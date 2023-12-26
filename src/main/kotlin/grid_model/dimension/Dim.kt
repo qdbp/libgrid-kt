@@ -4,9 +4,9 @@ import grid_model.dimension.Vec.Companion.ones
 import grid_model.dimension.Vec.Companion.vec
 import ivory.order.BoundedLattice
 import ivory.order.Lattice
-import ivory.order.Poset
-import ivory.order.Poset.Companion.pgeq
-import ivory.order.Poset.Companion.pleq
+import ivory.order.PartialOrder.Companion.pgeq
+import ivory.order.PartialOrder.Companion.pleq
+import ivory.order.Rel
 import kotlin.math.max
 import kotlin.math.min
 import mdspan.ndindex
@@ -99,11 +99,11 @@ class VecLattice<D : Dim<D>>(private val dim: D) : BoundedLattice<Vec<D>> {
     override val top: Vec<D> by lazy { dim.ones(Int.MAX_VALUE) }
     override val bottom: Vec<D> by lazy { dim.ones(Int.MIN_VALUE) }
 
-    override infix fun Vec<D>.pcmp(other: Vec<D>): Poset.Rel? {
+    override infix fun Vec<D>.cmp(other: Vec<D>): Rel? {
         val zipped = this.zip(other)
         return when {
-            zipped.all { (a, b) -> a <= b } -> Poset.Rel.LEQ
-            zipped.all { (a, b) -> a >= b } -> Poset.Rel.GEQ
+            zipped.all { (a, b) -> a <= b } -> Rel.LEQ
+            zipped.all { (a, b) -> a >= b } -> Rel.GEQ
             else -> null
         }
     }
@@ -155,13 +155,13 @@ class BBox<D : Dim<D>>(a: Vec<D>, b: Vec<D>) : Iterable<Vec<D>>, Collection<Vec<
 /** null is empty b-box */
 class BBLattice<D : Dim<D>> : Lattice<BBox<D>?> {
 
-    override infix fun (BBox<D>?).pcmp(other: BBox<D>?): Poset.Rel? {
-        if (this == null) return Poset.Rel.LEQ
-        if (other == null) return Poset.Rel.GEQ
+    override infix fun (BBox<D>?).cmp(other: BBox<D>?): Rel? {
+        if (this == null) return Rel.LEQ
+        if (other == null) return Rel.GEQ
         return with(dim.vlat) {
             when {
-                lower pleq other.lower && upper pgeq other.upper -> Poset.Rel.GEQ
-                lower pgeq other.lower && upper pleq other.upper -> Poset.Rel.LEQ
+                lower pleq other.lower && upper pgeq other.upper -> Rel.GEQ
+                lower pgeq other.lower && upper pleq other.upper -> Rel.LEQ
                 else -> null
             }
         }
