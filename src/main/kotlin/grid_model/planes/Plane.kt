@@ -1,4 +1,4 @@
-package grid_model
+package grid_model.planes
 
 /**
  * A grid layout problem can be subdivided into separate logical "planes".
@@ -37,13 +37,15 @@ abstract class Plane(protected val id: PlaneIdentifier) {
         }
 
     override fun hashCode(): Int = Pair(this::class, id).hashCode()
+
+    override fun toString(): String = "plane.$nice_name"
 }
 
 sealed class PlaneIdentifier
 
-internal object Universal : PlaneIdentifier()
+private object Universal : PlaneIdentifier()
 
-internal class Unique : PlaneIdentifier() {
+private class Unique : PlaneIdentifier() {
     override fun equals(other: Any?): Boolean {
         return this === other
     }
@@ -53,7 +55,7 @@ internal class Unique : PlaneIdentifier() {
     }
 }
 
-internal data class Named(val name: String) : PlaneIdentifier()
+private data class Named(val name: String) : PlaneIdentifier()
 
 /**
  * A universal plane is one that is shared by all entities.

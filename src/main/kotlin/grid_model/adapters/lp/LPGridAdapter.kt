@@ -2,47 +2,64 @@ package grid_model.adapters.lp
 
 import boolean_algebra.*
 import grid_model.*
-import grid_model.adapters.lp.pc.lp_compile
+import grid_model.adapters.lp.pc.ril_compile
 import grid_model.dimension.Dim
 import kulp.*
 import kulp.aggregates.LPOneOfN
 import kulp.expressions.IntAffExpr
 import kulp.transforms.ril.RIL
 import kulp.variables.LPBinary
-import mdspan.ndindex
 
 // TODO right now we hardcode LocatedPointPredicate, but in reality we need to be able to handle
 //  a collection of predicates. The GridProblem will return
 class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
 
-    fun compile(): LPProblem {
-        return object : LPProblem() {
-            override fun get_objective(): LPObjective = null_objective
+    var chart: GridLPChart
 
+    val lp_prob: LPProblem =
+        object : LPProblem() {
             val e_chart = node { lp_set_up_entities() }
             val t_chart = node { lp_set_up_tiles() }
 
             // TODO lp_set_up_potentials()
             // TODO lp_set_up_flows()
 
-            val chart = GridLPChart(e_chart, gp.ptc, t_chart)
+            val chart = GridLPChart(e_chart, gp.plane_tile_chart, t_chart)
 
-            val sat_al = gp.generate_satisfaction_algebra()
-            val ril_constraint_expr = node {
-                ril_compile_algebra(chart, sat_al).also { "is_sat" { it ge 1 } }
+            init {
+                this@LPGridAdapter.chart = chart
             }
-            val ril_setup_expr = node {
-                ril_compile_algebra(chart, gp.setup_predicates).also { "is_sat" { it ge 1 } }
+
+            init {
+                val cxt_expr =
+                    node.branch("cxt") {
+                        ril_compile_algebra(chart, gp.sat_algebra).also { "is_sat" { it ge 1 } }
+                    }
+                val init_expr =
+                    node.branch("init") {
+                        ril_compile_algebra(chart, gp.setup_predicates).also {
+                            "is_sat" { it ge 1 }
+                        }
+                    }
+                println("foo")
             }
+
+            val obj: LPAffExpr<Double> =
+                node.branch("obj") {
+                    gp.val_algebra
+                        .map { branch { it.value * ril_compile_algebra(chart, it.key).relax() } }
+                        .lp_sum()
+                }
+
+            override fun get_objective(): LPObjective = obj to LPObjectiveSense.Maximize
         }
-    }
 
     context(NodeCtx)
     private fun lp_set_up_entities(): LPEntityChart {
         // entities are not mutually exclusive, so we add a free LPBinary for each (entity, ix)
-        val chart_map = mutableMapOf<List<Int>, MutableMap<Entity, LPBinary>>()
+        val chart_map = mutableMapOf<List<Int>, MutableMap<Entity<*>, LPBinary>>()
         for (entity in gp.entities) {
-            for (ndix in ndindex(gp.grid_size)) {
+            for (ndix in gp.bounds) {
                 "${entity.name}_${ndix.lp_name}" {
                     LPBinary().also { chart_map.getOrPut(ndix) { mutableMapOf() }[entity] = it }
                 }
@@ -54,55 +71,51 @@ class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
     /** Sets up the fundamental backing LP variables of the problem */
     context(NodeCtx)
     private fun lp_set_up_tiles(): LPTileChart {
-        // set up tile variables
-        val tile_lp_map = mutableMapOf<Pair<List<Int>, Tile>, LPAffExpr<Int>>()
-        for (plane in gp.ptc.all_planes()) {
-            val tiles = gp.ptc.tiles_of(plane)
+        val ptc = gp.plane_tile_chart
+
+        // this is the "base map" of in-bounds tiles, which we will then extend with boundary
+        // conditions
+        val base_map: MutableMap<Pair<List<Int>, Tile>, LPBinary> = mutableMapOf()
+
+        for (plane in ptc.all_planes()) {
+            val tiles = ptc.tiles_of(plane)
             // + 1, since we need to add a "no tile" option. By convention, this will be the
             // last lpvar in the one-of-n aggregate. No one outside this class should care.
             val one_of_n = "${plane}_tiles" {
                 // constrained along last dim by default
-                LPOneOfN(gp.grid_size + (tiles.size + 1))
+                LPOneOfN(gp.shape + (tiles.size + 1))
             }
-
-            add_to_tile_chart(tile_lp_map, tiles, gp.boundary_conditions(plane), one_of_n)
-        }
-        // TODO we can do better than !! eventually
-        return LPTileChart { ndix, tile -> tile_lp_map[ndix to tile]!! }
-    }
-
-    /** Uses the boundary conditions to create the tile chart for a given plane. */
-    private fun add_to_tile_chart(
-        out_map: MutableMap<Pair<List<Int>, Tile>, LPAffExpr<Int>>,
-        tiles: List<Tile>,
-        bcs_by_dim: List<BoundaryCondition>,
-        one_of_n: LPOneOfN
-    ): LPTileChart {
-
-        // base map for in-rang3
-        val base_map: MutableMap<List<Int>, MutableMap<Tile, LPAffExpr<Int>>> = mutableMapOf()
-
-        // note: no + 1 here, since we do not add the "no tile" binary option to the chart
-        for (ndix in ndindex(gp.grid_size + tiles.size)) {
-            base_map.getOrPut(ndix) { mutableMapOf() }[tiles[ndix.last()]] = one_of_n.arr[ndix]
-        }
-
-        return object : LPTileChart {
-            override fun get(grid_ndix: List<Int>, tile: Tile): LPAffExpr<Int> {
-                val reduced_ndix = mutableListOf<Int>()
-                grid_ndix.forEachIndexed { dim, dx ->
-                    if (dim in 0 until gp.grid_size[dx]) {
-                        reduced_ndix.add(dx)
-                    } else {
-                        when (bcs_by_dim[dx]) {
-                            is HardStop -> return IntAffExpr(0)
-                            is Wrap -> reduced_ndix.add(dx % gp.grid_size[dx])
-                        }
-                    }
+            // note: no + 1 here, since we do not add the "no tile" binary option to the chart
+            for (ndix in gp.bounds) {
+                for (tx in tiles.indices) {
+                    val tile = tiles[tx]
+                    base_map[ndix to tile] = one_of_n[ndix + tx]
                 }
-                return base_map[reduced_ndix]!![tile]!!
             }
         }
+
+        // now we wrap the base map with an appropriate `withDefault` to handle boundary conditions
+        val bconds_by_tile: Map<Tile, List<BoundaryCondition>> =
+            ptc.all_planes()
+                .flatMap { p -> ptc.tiles_of(p).map { p to it } }
+                .associate { (p, t) -> t to gp.boundary_conditions(p) }
+
+        return LPTileChart { ndix, tile ->
+            val bcs = bconds_by_tile[tile]!!
+            val reduced_ndix = mutableListOf<Int>()
+            for (dx in ndix.indices) {
+                val dim_ix = ndix[dx]
+                when {
+                    // in range -> add to reduced_ndix
+                    dim_ix in 0 ..< gp.shape[dx] -> reduced_ndix.add(dim_ix)
+                    // out of range -> apply boundary conditions
+                    bcs[dx] is HardStop -> return@LPTileChart IntAffExpr(0)
+                    bcs[dx] is Wrap -> reduced_ndix.add(dx % gp.shape[dim_ix])
+                }
+            }
+            base_map[reduced_ndix to tile]!!
+        }
+        // todo might be worth memoizing this lambda, add a generic 'memo' extension on func types
     }
 
     context(NodeCtx)
@@ -129,23 +142,32 @@ class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
         return when (val spa = predicate_algebra.simplify()) {
             is True -> IntAffExpr(1)
             is False -> IntAffExpr(0)
-            is Pred -> spa.x.lp_compile(ch)
+            is Pred -> spa.x.ril_compile(ch)
             // this is pass-through, do not attach
             is Not -> RIL.not(ril_compile_algebra(ch, spa.x))
             // cost is the same, so we can minimize the implementation
-            is And -> ril_compile_algebra(ch, spa.de_morganize())
+            is And ->
+                RIL.and(
+                    spa.xs.mapIndexed { ix, x -> branch("and_$ix") { ril_compile_algebra(ch, x) } }
+                )
             // it's somewhat arbitrary if we should add nodes here, but we add them for
             // debugability
-            is Or -> RIL.or(spa.xs.map { x -> branch { ril_compile_algebra(ch, x) } })
-            is Xor -> RIL.xor(spa.xs.map { x -> branch { ril_compile_algebra(ch, x) } })
+            is Or ->
+                RIL.or(
+                    spa.xs.mapIndexed { ix, x -> branch("or_$ix") { ril_compile_algebra(ch, x) } }
+                )
+            is Xor ->
+                RIL.xor(
+                    spa.xs.mapIndexed { ix, x -> branch("xor_$ix") { ril_compile_algebra(ch, x) } }
+                )
             is Implies -> {
-                val ril_x = branch { ril_compile_algebra(ch, spa.x) }
-                val ril_y = branch { ril_compile_algebra(ch, spa.y) }
+                val ril_x = branch("impl_p") { ril_compile_algebra(ch, spa.x) }
+                val ril_y = branch("impl_q") { ril_compile_algebra(ch, spa.y) }
                 RIL.implies(ril_x, ril_y)
             }
             is Eq -> {
-                val ril_x = branch { ril_compile_algebra(ch, spa.x) }
-                val ril_y = branch { ril_compile_algebra(ch, spa.y) }
+                val ril_x = branch("eq_a") { ril_compile_algebra(ch, spa.x) }
+                val ril_y = branch("eq_b") { ril_compile_algebra(ch, spa.y) }
                 RIL.equiv(ril_x, ril_y)
             }
         }

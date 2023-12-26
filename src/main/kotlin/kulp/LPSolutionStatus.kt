@@ -1,5 +1,7 @@
 package kulp
 
+class ProvenInfeasible : Exception()
+
 enum class LPSolutionStatus {
     Optimal,
     Infeasible,

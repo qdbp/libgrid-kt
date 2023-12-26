@@ -25,7 +25,6 @@ fun <T> BooleanAlgebra<T>.evaluate(true_assign: Set<T>): Boolean =
  *
  * Any more advanced (sugared) relations need to know how to decompose themselves into one of these.
  */
-// TODO implement even more primitive forms, such AlgebraicNormalForm?
 sealed class BooleanAlgebra<out T>(private val substructure: List<BooleanAlgebra<T>>) {
 
     /** Simplifies this expression to one of a finite set of primitive forms define below. */
@@ -36,6 +35,8 @@ sealed class BooleanAlgebra<out T>(private val substructure: List<BooleanAlgebra
 
     /** Maps over the leaves */
     abstract fun <V> fmap(op: (T) -> V): BooleanAlgebra<V>
+
+    override fun hashCode(): Int = throw IllegalArgumentException("Nontrivial are unhashable.")
 
     override fun equals(other: Any?): Boolean {
         if (other !is BooleanAlgebra<*>) return false
@@ -54,7 +55,7 @@ sealed class BooleanAlgebra<out T>(private val substructure: List<BooleanAlgebra
      *
      * This is a sufficient, but (extremely!) not necessary, condition for equality.
      *
-     * e.g. logically And(x, y) == And(y, x), but will not pass this test.
+     * e.g. logically And(x, y) == And(y, x), but will not pass this test unless x `~~` y.
      */
     @Suppress("unused")
     infix fun <V> `~~`(other: BooleanAlgebra<V>): Boolean {
@@ -67,8 +68,6 @@ sealed class BooleanAlgebra<out T>(private val substructure: List<BooleanAlgebra
     fun <V> other_caller(other: BooleanAlgebra<V>): Boolean {
         return this `~~` other
     }
-
-    override fun hashCode(): Int = throw IllegalArgumentException("Algebras are unhashable")
 
     fun evaluate(assignment: (T) -> Boolean): Boolean =
         this.fmap(assignment.fmap(Boolean::lift)).simplify() is True
@@ -168,7 +167,7 @@ class And<T>(xs: List<BooleanAlgebra<T>>) : AVBA<T>(xs) {
 
     override fun simplify(): BooleanAlgebra<T> {
         return when (xs.size) {
-            0 -> False
+            0 -> True
             1 -> xs[0].simplify()
             else -> {
                 // lazy evaluation
@@ -181,9 +180,12 @@ class And<T>(xs: List<BooleanAlgebra<T>>) : AVBA<T>(xs) {
                         simplified_xs.add(it_simple)
                     }
                 }
-                // if we have empty here that means we have not found a False, so we are actually
-                // True. Returning And(<empty>) would be incorrect.
-                if (simplified_xs.isEmpty()) True else And(simplified_xs)
+                // can't recurse here, since we'd get stuck in a loop
+                when (simplified_xs.size) {
+                    0 -> True
+                    1 -> simplified_xs[0]
+                    else -> And(simplified_xs)
+                }
             }
         }
     }
@@ -198,7 +200,7 @@ class Or<T>(xs: List<BooleanAlgebra<T>>) : AVBA<T>(xs) {
 
     override fun simplify(): BooleanAlgebra<T> {
         return when (xs.size) {
-            0 -> True
+            0 -> False
             1 -> xs[0].simplify()
             else -> {
                 // lazy evaluation
@@ -211,7 +213,12 @@ class Or<T>(xs: List<BooleanAlgebra<T>>) : AVBA<T>(xs) {
                         simplified_xs.add(it_simple)
                     }
                 }
-                if (simplified_xs.isEmpty()) False else Or(simplified_xs)
+                // can't recurse here, since we'd get stuck in a loop
+                when (simplified_xs.size) {
+                    0 -> False
+                    1 -> simplified_xs[0]
+                    else -> Or(simplified_xs)
+                }
             }
         }
     }

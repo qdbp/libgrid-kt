@@ -12,12 +12,12 @@ fun <T> List<T>.mdspan(vararg shape: Int): NDSpanImpl<T> {
 }
 
 fun ndindex(vararg shape: Int): List<List<Int>> {
-    require(shape.all { it > 0 })
+    require(shape.all { it > 0 }) { "shape must be all positive" }
     val indices = MutableList(shape.size) { 0 }
     val max_indices = shape.map { it - 1 }
-    val result = mutableListOf<List<Int>>()
-    for (i in 0 until shape.toList().prod()) {
-        result.add(indices.toList())
+    val next_ndix = mutableListOf<List<Int>>()
+    for (i in 0 ..< shape.toList().prod()) {
+        next_ndix.add(indices.toList())
         for (j in indices.indices.reversed()) {
             indices[j] += 1
             if (indices[j] <= max_indices[j]) {
@@ -26,7 +26,7 @@ fun ndindex(vararg shape: Int): List<List<Int>> {
             indices[j] = 0
         }
     }
-    return result
+    return next_ndix
 }
 
 fun ndindex(shape: List<Int>): List<List<Int>> {

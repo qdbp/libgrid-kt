@@ -22,8 +22,8 @@ interface Tile {
  *
  * Example: power-plane coverage by electric poles, cachement areas, etc.
  */
-data class BosonicTile(val entity: Entity) : Tile {
-    override fun tile_name(): String = entity.name
+data class BosonicTile(val name: String) : Tile {
+    override fun tile_name(): String = name
 }
 
 /**
@@ -31,7 +31,10 @@ data class BosonicTile(val entity: Entity) : Tile {
  *
  * e.g the body tiles of a solid geometric shape: a right corner cannot overlap a left corner, so
  * they must occupy identity "levels".
+ *
+ * TODO make these Vec? really not much value threading the dim genericity this low, we can
+ *  probably assume we have it right at this point and just use List<Int>
  */
-data class FermionicTile(val entity: Entity, val coords: List<Int>) : Tile {
-    override fun tile_name(): String = "${entity.name}${coords.lp_name}"
+data class FermionicTile(val name: String, val vec: List<Int>) : Tile {
+    override fun tile_name(): String = "${name}_${vec.lp_name}"
 }

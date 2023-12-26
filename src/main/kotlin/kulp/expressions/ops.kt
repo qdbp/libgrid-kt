@@ -5,6 +5,7 @@ import kulp.LPAffExpr
 import kulp.LPConstraint
 import kulp.LPPath
 import kulp.transforms.IntClip
+import kulp.variables.LPVar
 
 /**
  * Evaluates the expression as written to a number outside a solver context
@@ -24,10 +25,10 @@ fun <N : Number> LPAffExpr<N>.evaluate(nonzero_assignments: Map<LPPath, N>): N {
 
 // extensions on LPAffExpr<Int> to be more generic
 context(BindCtx)
-fun LPAffExpr<Int>.int_clip(lb: Int? = null, ub: Int? = null): IntClip = IntClip(this, lb, ub)
+fun LPAffExpr<Int>.int_clip(lb: Int? = null, ub: Int? = null): LPVar<Int> = IntClip.clip(this, lb, ub)
 
 context(BindCtx)
-fun LPAffExpr<Int>.bool_clip(): IntClip = int_clip(0, 1)
+fun LPAffExpr<Int>.bool_clip(): LPVar<Int> = int_clip(0, 1)
 
 // int expressions support strict inequality
 context(BindCtx)

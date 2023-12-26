@@ -1,6 +1,8 @@
 package grid_model.adapters.lp.pc
 
 import grid_model.adapters.lp.GridLPChart
+import grid_model.dimension.Dim
+import grid_model.dimension.Vec
 import grid_model.predicate.HasTile
 import grid_model.predicate.IsEntity
 import grid_model.predicate.NoneForPlane
@@ -10,15 +12,21 @@ import kulp.NodeCtx
 import kulp.lp_sum
 import kulp.transforms.ril.RIL
 
-object PointPredicateRILCompiler : GridPredicateRILCompiler<SPGP> {
+object PointPredicateRILCompiler : GridPredicateRILCompiler<SPGP<*>> {
     /**
      * Converts a predicate of the given type P to a RIL-expression that witnesses its truth.
      *
      * The ril expression should be an integer affine expr s.t. expr >= 1 <=> P is satisfied.
      */
     context(NodeCtx)
-    override fun ril_compile_pred(chart: GridLPChart, predicate: SPGP): LPAffExpr<Int> {
+    override fun <D : Dim<D>> ril_compile_pred(
+        chart: GridLPChart,
+        predicate: SPGP<*>
+    ): LPAffExpr<Int> {
         val (ix, pred) = predicate
+
+        // todo this is ugly but probably better than turning this into a class that needs to
+        // be instantiated per dim
         return when (pred) {
             // in these we use the fact that we have nice LPBinaries in the chart, which lets
             // us avoid a lot of clipping, etc.

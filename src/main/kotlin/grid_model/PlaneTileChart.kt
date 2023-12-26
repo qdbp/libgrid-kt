@@ -1,5 +1,7 @@
 package grid_model
 
+import grid_model.planes.Plane
+
 interface PlaneTileChart {
     fun all_planes(): Collection<Plane>
 

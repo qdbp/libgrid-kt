@@ -80,7 +80,7 @@ class Vec<D : Dim<D>> private constructor(private val coords: List<Int>, val dim
         return dim.vec(coords.map { -it })
     }
 
-    override fun toString(): String = "Vec$coords".replace(" ", "")
+    override fun toString(): String = "$coords".replace(" ", "")
 
     fun to_origin_bb(): BBox<D> = BBox(dim.zvec(), this)
 
@@ -121,22 +121,35 @@ class VecLattice<D : Dim<D>>(private val dim: D) : BoundedLattice<Vec<D>> {
  * Because we restrict ourselves to non-empty BBs, we do not have a meet. TODO worth adding? need
  * some sort of sealed hierarchy? yuck
  */
-class BBox<D : Dim<D>>(a: Vec<D>, b: Vec<D>) {
+class BBox<D : Dim<D>>(a: Vec<D>, b: Vec<D>) : Iterable<Vec<D>>, Collection<Vec<D>> {
 
-    val lower = with(a.dim.vlat) { a meet b }
-    val upper = with(a.dim.vlat) { a join b }
     val dim = a.dim
+    val lower = a.dim.vlat.run { a meet b }
+    val upper = a.dim.vlat.run { a join b }
 
     operator fun component1(): Vec<D> = lower
 
     operator fun component2(): Vec<D> = upper
 
+    // need to add ones since bounding boxes are inclusive, so upper == lower actually implies
+    // a shape of ones
+    val shape: Vec<D> by lazy { upper - lower + dim.ones() }
+
     fun points(): Iterable<Vec<D>> {
-        return ndindex(upper - lower).map { lower + lower.dim.vec(it) }
+        return ndindex(shape).map { lower + lower.dim.vec(it) }
     }
 
-    operator fun contains(other: Vec<D>): Boolean =
-        with(other.dim.vlat) { other pgeq lower && other pleq upper }
+    override fun iterator(): Iterator<Vec<D>> = points().iterator()
+
+    override val size: Int
+        get() = points().count()
+
+    override fun isEmpty(): Boolean = false
+
+    override fun containsAll(elements: Collection<Vec<D>>): Boolean = elements.all { it in this }
+
+    override operator fun contains(element: Vec<D>): Boolean =
+        with(element.dim.vlat) { element pgeq lower && element pleq upper }
 }
 
 /** null is empty b-box */
@@ -162,7 +175,6 @@ class BBLattice<D : Dim<D>> : Lattice<BBox<D>?> {
                 (lower pgeq other.upper && lower != other.upper) ||
                     (upper pleq other.lower && upper != other.lower)
             ) {
-
                 BBox(lower join other.lower, upper meet other.upper)
             } else {
                 null

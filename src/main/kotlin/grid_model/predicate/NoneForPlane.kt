@@ -1,6 +1,6 @@
 package grid_model.predicate
 
-import grid_model.Plane
+import grid_model.planes.Plane
 
 /**
  * No tile for the given plane is present at this point.

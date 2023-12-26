@@ -1,7 +1,6 @@
 package ivory.order
 
 interface BoundedLattice<T> : Lattice<T> {
-
     val top: T
     val bottom: T
 }

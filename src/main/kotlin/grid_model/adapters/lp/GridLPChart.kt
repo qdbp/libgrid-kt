@@ -25,8 +25,8 @@ data class GridLPChart(
     val lptc: LPTileChart,
 )
 
-data class LPEntityChart(val entity_map: Map<List<Int>, Map<Entity, LPAffExpr<Int>>>) {
-    operator fun get(ix: List<Int>, entity: Entity): LPAffExpr<Int> = entity_map[ix]!![entity]!!
+data class LPEntityChart(val entity_map: Map<List<Int>, Map<Entity<*>, LPAffExpr<Int>>>) {
+    operator fun get(ix: List<Int>, entity: Entity<*>): LPAffExpr<Int> = entity_map[ix]!![entity]!!
 }
 
 fun interface LPTileChart {

@@ -7,9 +7,9 @@ package factorio
 //     override fun get_extent_map(): Map<Plane<*>, Extent<*>> {
 //         return mapOf(
 //             OntologicalPlane to PointExtent(this),
-//             BeltColorPlane to grid_model.Extent.empty(),
-//             BeltInputPlane to grid_model.Extent.empty(),
-//             BeltOutputPlane to grid_model.Extent.empty()
+//             BeltColorPlane to grid_model.extents.Extent.empty(),
+//             BeltInputPlane to grid_model.extents.Extent.empty(),
+//             BeltOutputPlane to grid_model.extents.Extent.empty()
 //         )
 //     }
 // }

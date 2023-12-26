@@ -15,7 +15,7 @@ val TestAlgebra: BooleanAlgebra<String> =
         True,
         True,
         And(False),
-        Or(),
+        Or(True),
         Implies(Pred("g"), True),
         Implies(Pred("h"), False),
     )
@@ -54,7 +54,7 @@ class TestBooleanAlgebra {
 
     @Test
     fun test_evaluate_and() {
-        assert(!And<Boolean>().evaluate())
+        assert(And<Boolean>().evaluate())
         assert(And(listOf(Pred("a"), Pred("b"))).evaluate(setOf("a", "b")))
         assert(!And(listOf(Pred("a"), Pred("b"))).evaluate(setOf("a")))
         assert(!And(listOf(Pred("a"), Pred("b"))).evaluate(setOf("b")))
@@ -63,7 +63,7 @@ class TestBooleanAlgebra {
 
     @Test
     fun test_evaluate_or() {
-        assert(Or<Boolean>().evaluate())
+        assert(!Or<Boolean>().evaluate())
         assert(Or(listOf(Pred("a"), Pred("b"))).evaluate(setOf("a", "b")))
         assert(Or(listOf(Pred("a"), Pred("b"))).evaluate(setOf("a")))
         assert(Or(listOf(Pred("a"), Pred("b"))).evaluate(setOf("b")))

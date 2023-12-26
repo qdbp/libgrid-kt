@@ -7,7 +7,7 @@ import kulp.LPAffExpr
 import kulp.LPObjectiveSense
 import kulp.LPProblem
 import kulp.LPSolutionStatus
-import kulp.expressions.int_clip
+import kulp.transforms.IntClip
 import kulp.variables.LPInteger
 import test_kulp.ScipTester
 
@@ -19,7 +19,7 @@ private class IntClipTestProblem(
 ) : LPProblem() {
 
     val x = node.bind("x") { LPInteger(pin_x, pin_x) }
-    val y = node.bind("y") { x.int_clip(lb, ub) }
+    val y = node.bind("y") { IntClip(x, lb, ub) }
 
     override fun get_objective(): Pair<LPAffExpr<*>, LPObjectiveSense> = mk_objective(y)
 }

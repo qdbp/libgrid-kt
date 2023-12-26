@@ -1,6 +1,6 @@
 package kulp
 
-const val LP_NAMESPACE_SEP = "/"
+const val LP_NAMESPACE_SEP = "."
 
 /**
  * A suggestive type alias that tells us that what we have is an unbound renderable that requires a
@@ -17,7 +17,7 @@ typealias NodeCtx = LPNode.NodeCtx
 typealias BindCtx = LPNode.BindCtx
 
 class LPPath(private val segments: List<String>) {
-    fun render(sep: String = LP_NAMESPACE_SEP): String = sep + segments.drop(1).joinToString(sep)
+    fun render(sep: String = LP_NAMESPACE_SEP): String = segments.drop(1).joinToString(sep)
 
     override fun toString(): String = render()
 
@@ -182,6 +182,9 @@ private constructor(val name: String, private val parent: LPNode?, private var d
                         "Renderable $renderable did not claim its node but got it anyway??"
                     )
                 }
+                // it's legal to fail to claim in a binding context -- the node is implicitly
+                // downgraded to Structural. This is useful for "maybe binding" operations such
+                // as reify (which binds on general expressions but is a nop on variables).
                 new_node.data = Structural
             } else {
                 new_node.data = Data(renderable)

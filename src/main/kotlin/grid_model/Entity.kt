@@ -1,6 +1,8 @@
 package grid_model
 
-import grid_model.extents.NullExtent
+import grid_model.dimension.Dim
+import grid_model.extents.Extent
+import grid_model.planes.Plane
 
 /**
  * The Entity models a fundamental physical "thing" that may be placed into the world.
@@ -8,11 +10,11 @@ import grid_model.extents.NullExtent
  * This physicality is encoded in the fact that entities are tiles. The ontological plane of a grid
  * problem is the plane of entities and its tile type is Entity.
  */
-interface Entity {
+interface Entity<D : Dim<D>> {
     val name: String
 
     /** Each entity must provide a list of planes it is active in. */
-    fun active_planes(): List<Plane>
+    fun active_planes(): Collection<Plane>
 
     /**
      * Returns the extent of the entity within the given plane.
@@ -24,5 +26,5 @@ interface Entity {
      * during the lifetime of the entity.
      */
     // todo make this an abstract val Map?
-    fun <P : Plane> get_extent_within(plane: P): Extent<P> = NullExtent
+    fun <P : Plane> get_extent_within(plane: P): Extent<D>? = null
 }
