@@ -7,9 +7,9 @@ import ivory.order.Lattice
 import ivory.order.PartialOrder.Companion.pgeq
 import ivory.order.PartialOrder.Companion.pleq
 import ivory.order.Rel
+import mdspan.ndindex
 import kotlin.math.max
 import kotlin.math.min
-import mdspan.ndindex
 
 interface BaseDim {
     val ndim: Int

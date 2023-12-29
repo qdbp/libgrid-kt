@@ -3,14 +3,14 @@ package ivory.algebra
 import ivory.num.B
 import ivory.num.R
 import ivory.num.Z
-import kulp.zero
-import kotlin.reflect.KClass
 
 // sadly, we can't extend Monoid and AbelianGroup here because `op` would be fundamentally
 // ambiguous We could pick just one for convenience, but that would lead to confusion. Instead, we
 // expose the underlying monoid and group as fields. This will lead to annoyance in places where we
 // e.g. have a ring but want the additive group, since we'll need to do with(ring.add) { ... }
 // explicitly, but this is better than ambiguity imho.
+// TODO we use this as a commutative ring, we should distinguish the two even if with a passthrough
+//  interface
 interface Ring<T> {
 
     val add: AbelianGroup<T>
@@ -30,6 +30,13 @@ interface Ring<T> {
 
         context(Ring<T>)
         operator fun <T, A : T, B : T> A.times(other: B): T = mul.run { this@times op other }
+
+        // give non-operator names to help resolve ambiguity in some call sites
+        context(Ring<T>)
+        infix fun <T, A : T, B : T> A.rmul(other: B): T = this * other
+
+        context(Ring<T>)
+        infix fun <T, A : T, B : T> A.radd(other: B): T = this + other
 
         context(Ring<T>)
         operator fun <T, A : T> A.unaryMinus(): T = add.run { -this@unaryMinus }
@@ -65,3 +72,14 @@ object IntRing : Ring<Int> {
     override val add: AbelianGroup<Int> = IntAdd
     override val mul: Monoid<Int> = IntMul
 }
+
+val <N : Number> N.natural_ring: Ring<N>
+    get() {
+        @Suppress("UNCHECKED_CAST")
+        return when (this) {
+            is Double -> DoubleRing
+            is Int -> IntRing
+            else -> throw NotImplementedError()
+        }
+            as Ring<N>
+    }

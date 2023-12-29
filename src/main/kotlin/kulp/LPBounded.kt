@@ -3,9 +3,7 @@ package kulp
 import ivory.interval.ClosedInterval
 
 /** Interface for LP objects having intrinsic bounds. */
-interface LPBounded<N : Number>: LPBoundable<N> {
-
-    override fun resolve_bounds(root: LPNode): ClosedInterval<N> = bounds
+interface LPBounded<N : Number> {
 
     val bounds: ClosedInterval<N>
 
@@ -14,9 +12,4 @@ interface LPBounded<N : Number>: LPBoundable<N> {
 
     val ub: N?
         get() = bounds.ub
-}
-
-/** Interface for LP objects having continent bounds requiring name resolution. */
-interface LPBoundable<N : Number> {
-    fun resolve_bounds(root: LPNode): ClosedInterval<N>
 }

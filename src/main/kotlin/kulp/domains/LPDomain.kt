@@ -1,11 +1,14 @@
 package kulp.domains
 
 import ivory.algebra.Ring
+import ivory.algebra.Ring.Companion.radd
+import ivory.algebra.Ring.Companion.rmul
 import ivory.interval.ClosedInterval
 import ivory.order.TotalOrder
 import ivory.order.TotalOrder.Companion.psort
 import kulp.BindCtx
 import kulp.LPAffExpr
+import kulp.LPPath
 import kulp.variables.LPVar
 import kotlin.reflect.KClass
 
@@ -21,6 +24,8 @@ sealed class LPDomain<N : Number>(
 
     context(BindCtx)
     abstract fun newvar(lb: N? = null, ub: N? = null): LPVar<N>
+
+    abstract fun newexpr(terms: Map<LPPath, N>, constant: N): LPAffExpr<N>
 
     context(BindCtx)
     fun newvar(ival: ClosedInterval<N>): LPVar<N> = newvar(ival.lb, ival.ub)
@@ -43,4 +48,12 @@ sealed class LPDomain<N : Number>(
     fun max(a: N, b: N): N = order.run { a psort b }.second
 
     fun min(a: N, b: N): N = order.run { a psort b }.first
+
+    operator fun N.unaryMinus(): N = ring.add.run { -this@unaryMinus }
+
+    operator fun N.plus(other: N): N = ring.run { this@N radd other }
+
+    operator fun N.minus(other: N): N = ring.run { this@minus radd other.unaryMinus() }
+
+    operator fun N.times(other: N): N = ring.run { this@times rmul other }
 }

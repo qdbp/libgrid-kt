@@ -1,6 +1,7 @@
 package kulp
 
 import kulp.variables.LPVar
+import mdspan.NDSpan
 
 const val LP_NAMESPACE_SEP = "."
 
@@ -127,6 +128,8 @@ private constructor(val name: String, private val parent: LPNode?, private var d
         parent?.children?.remove(this.name)
     }
 
+    @DslMarker private annotation class NodeContextMarker
+
     /**
      * A Node Context is the building block of the node builder pattern. One can think of it as a
      * type-safe, declaration of intent regarding how a new will be consumed.
@@ -134,6 +137,7 @@ private constructor(val name: String, private val parent: LPNode?, private var d
      * The LPTree is in charge of producing these contexts in a safe way, and consumers declare the
      * level of context they need.
      */
+    @NodeContextMarker
     open class NodeCtx(protected val node: LPNode) {
 
         // we expose the expansion functions on the context directly for convenience, since
@@ -147,6 +151,26 @@ private constructor(val name: String, private val parent: LPNode?, private var d
         // some infix hipster sugar
         operator fun <T : LPRenderable> String.invoke(op: (BindCtx).() -> T): T =
             node.bind(this, op)
+
+        fun <T : LPRenderable, V> List<V>.bind_each(base: String, op: (BindCtx).(V) -> T): List<T> =
+            when (this) {
+                is NDSpan ->
+                    this.mapNdIndexed { ndix, v -> bind("${base}${ndix.lp_name}") { op(v) } }
+                else -> this.mapIndexed { ix, v -> bind("${base}_${ix}") { op(v) } }
+            }
+
+        fun <T, V> List<T>.branch_each(op: (NodeCtx).(T) -> V): List<V> =
+            when (this) {
+                is NDSpan -> this.mapNdIndexed { ndix, v -> branch(ndix.lp_name) { op(v) } }
+                else -> this.mapIndexed { ix, v -> branch("$ix") { op(v) } }
+            }
+
+        fun <T, V> List<T>.branch_each(name: String, op: (NodeCtx).(T) -> V): List<V> =
+            when (this) {
+                is NDSpan ->
+                    this.mapNdIndexed { ndix, v -> branch("${name}${ndix.lp_name}") { op(v) } }
+                else -> this.mapIndexed { ix, v -> branch("${name}_${ix}") { op(v) } }
+            }
 
         val root
             get() = node.root
@@ -191,7 +215,7 @@ private constructor(val name: String, private val parent: LPNode?, private var d
     }
 
     /**
-     * Opens the strictest of the three Tree Growing Contexts (TGCs) `bind`, and `grow`.
+     * Opens the strictest of the Tree Growing Contexts (TGCs) `bind`, and `grow`.
      *
      * This context simulates a linear type, where the node must be consumed exactly once by a new
      * renderable to become its node member.
@@ -363,13 +387,3 @@ val List<Int>.lp_name: String
             else -> "(${",".join(this)})" // includes 0, yes
         }
     }
-
-// new idea
-// node {
-//      bind("x") { LPBinary(it) }
-//
-// node bind("x") {
-//  /* here we have a BindingContext, which is context() on constructor */
-//  LPBinary()
-//  grow() {
-// }

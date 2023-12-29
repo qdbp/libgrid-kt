@@ -1,12 +1,9 @@
 package kulp.transforms.ril
 
-import kulp.LPAffExpr
-import kulp.NodeCtx
+import kulp.*
 import kulp.expressions.IntAffExpr
 import kulp.expressions.bool_clip
 import kulp.expressions.int_clip
-import kulp.lp_sum
-import kulp.minus
 import kulp.transforms.IntEQZWitness
 
 /**
@@ -23,6 +20,10 @@ import kulp.transforms.IntEQZWitness
  * The outputs are plain affine expression and are not guaranteed to be reified. These expressions
  * will need to be `put` rather than `bind`ed, and for this reason any variables that are created
  * internally are attached to new children of the passed node.
+ *
+ * A note to users: RIL logic functions never create "scoping" nodes or otherwise attempt to avoid
+ * name collisions. It is entirely the responsibility of the caller to structure RIL invocations
+ * within appropriate namespacing constructs.
  */
 object RIL {
 
@@ -34,64 +35,90 @@ object RIL {
     context(NodeCtx)
     fun equiv(p: LPAffExpr<Int>, q: LPAffExpr<Int>): LPAffExpr<Int> {
         // TODO more efficient implementation
-        val pq = branch { implies(p, q) }
-        val qp = branch { implies(q, p) }
+        val pq = implies(p, q)
+        val qp = implies(q, p)
         return and(pq, qp)
     }
 
     context(NodeCtx)
-    fun xor(xs: List<LPAffExpr<Int>>): LPAffExpr<Int> = xor(*xs.toTypedArray())
-
-    context(NodeCtx)
-    fun xor(vararg xs: LPAffExpr<Int>): LPAffExpr<Int> {
+    fun xor(xs: List<LPAffExpr<Int>>): LPAffExpr<Int> {
         return when (xs.size) {
             // empty xor is false; not we could also do false_pinned(node) to skip making
             // the intermediate node
-            0 -> IntAffExpr(0)
+            0 -> never
             // we promise a variable, so we reify the expression
             1 -> xs[0]
             else -> {
-                val clipped = xs.mapIndexed { i, x -> "clip_$i" { x.bool_clip() } }
-                val sum = clipped.lp_sum()
+                val sum = xs.bind_each("xor_clip") { it.bool_clip() }.lp_sum()
                 "xor" { IntEQZWitness(sum - 1) }
             }
         }
     }
 
     context(NodeCtx)
-    fun and(xs: List<LPAffExpr<Int>>): LPAffExpr<Int> = and(*xs.toTypedArray())
+    fun xor(vararg xs: LPAffExpr<Int>): LPAffExpr<Int> = xor(xs.toList())
 
     context(NodeCtx)
-    fun and(vararg xs: LPAffExpr<Int>): LPAffExpr<Int> {
+    fun and(xs: List<LPAffExpr<Int>>): LPAffExpr<Int> {
         return when (xs.size) {
-            0 -> IntAffExpr(0)
+            0 -> always
             1 -> xs[0]
             else -> {
-                val clipped = xs.mapIndexed { i, x -> "clip_$i" { x.int_clip(ub = 1) } }
+                val clipped = xs.bind_each("and_clip") { it.int_clip(ub = 1) }
                 clipped.lp_sum() - clipped.size + 1
             }
         }
     }
 
     context(NodeCtx)
-    fun or(xs: List<LPAffExpr<Int>>): LPAffExpr<Int> = or(*xs.toTypedArray())
+    fun and(vararg xs: LPAffExpr<Int>): LPAffExpr<Int> = and(xs.toList())
 
     context(NodeCtx)
-    fun or(vararg xs: LPAffExpr<Int>): LPAffExpr<Int> {
+    fun or(xs: List<LPAffExpr<Int>>): LPAffExpr<Int> {
         return when (xs.size) {
-            0 -> IntAffExpr(1)
+            0 -> never
             1 -> xs[0]
-            else -> xs.mapIndexed { i, x -> "lb_$i" { x.int_clip(lb = 0) } }.lp_sum()
+            else -> xs.bind_each("or_clip") { it.int_clip(lb = 0) }.lp_sum()
         }
     }
 
     context(NodeCtx)
+    fun or(vararg xs: LPAffExpr<Int>): LPAffExpr<Int> = or(xs.toList())
+
+    context(NodeCtx)
     fun implies(p: LPAffExpr<Int>, q: LPAffExpr<Int>): LPAffExpr<Int> {
-        val not_p = "not_p" { (-p).int_clip(lb = 0) }
+        val not_p = "not_p" { not(p).int_clip(lb = 0) }
         // we don't need an upper bound on q
         val q_clip = "q_clip" { q.int_clip(lb = 0) }
         return not_p + q_clip
     }
 
+    context(NodeCtx)
+    fun min_sat(k: Int, xs: List<LPAffExpr<Int>>): LPAffExpr<Int> {
+        return when {
+            // these are cheaper (half clips vs. full clips), so prefer them when we can
+            k <= 0 -> always
+            k == 1 -> or(xs)
+            k == xs.size -> and(xs)
+            k > xs.size -> never
+            else -> 1 - k + xs.bind_each("min_sat") { it.bool_clip() }.lp_sum()
+        }
+    }
+
+    context(NodeCtx)
+    fun max_sat(k: Int, xs: List<LPAffExpr<Int>>): LPAffExpr<Int> {
+        return when {
+            k < 0 -> never
+            k == 0 -> and(xs.map { not(it) })
+            k == xs.size - 1 -> or(xs.map { not(it) })
+            k >= xs.size -> always
+            else -> 1 + k - xs.bind_each("max_sat") { it.bool_clip() }.lp_sum()
+        }
+    }
+
     fun not(p: LPAffExpr<Int>): LPAffExpr<Int> = 1 - p
+
+    val always: LPAffExpr<Int> = IntAffExpr(1)
+
+    val never: LPAffExpr<Int> = IntAffExpr(0)
 }

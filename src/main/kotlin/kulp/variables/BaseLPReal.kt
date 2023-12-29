@@ -2,8 +2,8 @@ package kulp.variables
 
 import kulp.BindCtx
 import kulp.LPAffExpr
-import kulp.domains.LPDomain
 import kulp.NodeBoundRenderable
+import kulp.domains.LPDomain
 import kulp.domains.LPRealDomain
 import kulp.expressions.RealAffExpr
 

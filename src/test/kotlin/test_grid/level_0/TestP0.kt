@@ -1,11 +1,11 @@
 package test_grid.level_0
 
+import boolean_algebra.True
 import grid_model.BAGP
 import grid_model.Entity
 import grid_model.adapters.lp.LPGridAdapter
 import grid_model.dimension.D2
 import grid_model.dimension.Vec.Companion.vec
-import grid_model.predicate.BaseGridPredicate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kulp.LPSolutionStatus
@@ -22,7 +22,7 @@ private object EmptyProblem : TestGridProblem<D2>(D2) {
 
     override fun get_entity_set(): Set<Entity<D2>> = setOf()
 
-    override fun get_setup_predicates(): Iterable<BaseGridPredicate> = listOf()
+    override fun generate_requirement_predicates(): BAGP = True
 
     override fun get_valuation_predicates(): Map<BAGP, Double> = mapOf()
 }
@@ -32,7 +32,7 @@ class TestP0 : ScipTester() {
     @Test
     fun test_empty_problem() {
         val adapter = LPGridAdapter(EmptyProblem)
-        val solution = solve_problem(adapter.lp_prob)
+        val solution = solve(adapter.lp_prob)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
 }

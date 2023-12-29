@@ -32,7 +32,7 @@ class TestMaxMin : ScipTester() {
     @Test
     fun testMaxMinimize() {
         val prob = IntMaxMinProblem(do_max = true, do_minimize = true)
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
         assertEquals(7.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
@@ -40,7 +40,7 @@ class TestMaxMin : ScipTester() {
     @Test
     fun testMaxMaximize() {
         val prob = IntMaxMinProblem(do_max = true, do_minimize = false)
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
         assertEquals(7.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
@@ -48,7 +48,7 @@ class TestMaxMin : ScipTester() {
     @Test
     fun testMinMinimize() {
         val prob = IntMaxMinProblem(do_max = false, do_minimize = true)
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
         assertEquals(-3.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }
@@ -56,7 +56,7 @@ class TestMaxMin : ScipTester() {
     @Test
     fun testMinMaximize() {
         val prob = IntMaxMinProblem(do_max = false, do_minimize = false)
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
         assertEquals(-3.0, solution.objective_value())
         assertEquals(LPSolutionStatus.Optimal, solution.status())
     }

@@ -27,3 +27,20 @@ object IntOrder : TotalOrder<Int> {
             else -> Rel.GEQ
         }
 }
+
+val <N : Number> N.natural_order: TotalOrder<N>
+    get() {
+        @Suppress("UNCHECKED_CAST")
+        return when (this) {
+            is Int -> IntOrder
+            else ->
+                object : TotalOrder<N> {
+                    override fun N.cmp(other: N): Rel =
+                        when {
+                            this.toDouble() <= other.toDouble() -> Rel.LEQ
+                            else -> Rel.GEQ
+                        }
+                }
+        }
+            as TotalOrder<N>
+    }

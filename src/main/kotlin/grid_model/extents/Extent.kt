@@ -1,6 +1,6 @@
 package grid_model.extents
 
-import boolean_algebra.BooleanAlgebra
+import boolean_algebra.BooleanExpr
 import grid_model.Tile
 import grid_model.dimension.Dim
 import grid_model.predicate.SPGP
@@ -20,7 +20,7 @@ abstract class Extent<D : Dim<D>> {
     val active_tiles: List<Tile> by lazy { get_active_tiles() }
 
     /** Enumerates the predicates that must be true */
-    protected abstract fun local_demands(): BooleanAlgebra<SPGP<D>>
+    protected abstract fun local_demands(): BooleanExpr<SPGP<D>>
 
-    val demands: BooleanAlgebra<SPGP<D>> by lazy { local_demands() }
+    val demands: BooleanExpr<SPGP<D>> by lazy { local_demands() }
 }

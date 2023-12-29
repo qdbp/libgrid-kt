@@ -59,7 +59,7 @@ class TestOneOfKnapsack : ScipTester() {
 
     @Test
     fun test() {
-        val solution = solve_problem(OneOfKnapsackProblem)
+        val solution = solve(OneOfKnapsackProblem)
         assert(solution.status() == LPSolutionStatus.Optimal) {
             "status ${solution.status()} != Optimal"
         }

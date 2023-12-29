@@ -1,6 +1,8 @@
 package grid_model.extents
 
-import grid_model.*
+import grid_model.BosonicTile
+import grid_model.Shape
+import grid_model.Tile
 import grid_model.dimension.Dim
 import grid_model.dimension.Vec
 import grid_model.predicate.HasTile

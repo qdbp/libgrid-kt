@@ -1,12 +1,12 @@
 package kulp
 
-import kotlin.math.roundToInt
 import kulp.constraints.LP_LEZ
 import kulp.domains.LPDomain
 import kulp.domains.LPIntegralDomain
 import kulp.domains.LPRealDomain
 import kulp.variables.PrimitiveLPInteger
 import kulp.variables.PrimitiveLPReal
+import kotlin.math.roundToInt
 
 class UnsupportedRenderableError(msg: String) : IllegalArgumentException(msg)
 
@@ -76,7 +76,7 @@ interface IntegerCapability : SolverCapability
 
 class LpContext : LPContext(), RealCapability
 
-class MipContext(override val bigM: Double = 1000.0) :
+class MipContext(override val bigM: Double) :
     LPContext(), BigMCapability, RealCapability, IntegerCapability
 
 class CPSATContext : LPContext(), IntegerCapability

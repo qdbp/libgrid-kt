@@ -9,15 +9,13 @@ import kulp.NodeCtx
 
 sealed interface GridPredicateRILCompiler<in P : BaseGridPredicate> {
 
-    context(NodeCtx)
-    fun <D: Dim<D>> ril_compile_pred(chart: GridLPChart, predicate: P): LPAffExpr<Int>
+    context(NodeCtx, GridLPChart)
+    fun <D : Dim<D>> ril_compile_pred(predicate: P): LPAffExpr<Int>
 }
 
-context(NodeCtx)
-fun BaseGridPredicate.ril_compile(
-    chart: GridLPChart,
-): LPAffExpr<Int> =
+context(NodeCtx, GridLPChart)
+fun BaseGridPredicate.ril_compile(): LPAffExpr<Int> =
     when (this) {
-        is SPGP<*> -> PointPredicateRILCompiler.ril_compile_pred(chart, this)
+        is SPGP<*> -> PointPredicateRILCompiler.ril_compile_pred(this)
         else -> throw NotImplementedError("No compiler for predicate $this")
     }

@@ -1,8 +1,11 @@
 package kulp
 
+import ivory.interval.ClosedInterval
 import kulp.constraints.LP_EQZ
 import kulp.constraints.LP_LEZ
 import kulp.domains.LPDomain
+import kulp.domains.LPIntegralDomain
+import kulp.domains.LPRealDomain
 import kulp.expressions.IntAffExpr
 import kulp.expressions.RealAffExpr
 import kulp.variables.LPVar
@@ -14,11 +17,30 @@ import kulp.variables.LPVar
  *
  * The base interface parameterizes over the numerical domain of the expression.
  */
-interface LPAffExpr<N : Number>: LPBoundable<N> {
+interface LPAffExpr<N : Number> {
 
     val dom: LPDomain<N>
     val terms: Map<LPPath, N>
     val constant: N
+
+    val ring get() = dom.ring
+
+    companion object {
+        private fun <N: Number> as_expr(n: N): LPAffExpr<N> {
+            @Suppress("UNCHECKED_CAST")
+            return when (n) {
+                is Int -> IntAffExpr(LPIntegralDomain.coerce_number(n))
+                is Double -> RealAffExpr(LPRealDomain.coerce_number(n))
+                else -> throw IllegalArgumentException("Cannot convert $n to an expression")
+            }
+                    as LPAffExpr<N>
+        }
+    }
+
+    /** All expressions can compute bounds for themselves, given a root node against which
+     * variable bounds be looked up. This is in contrast with [LPBounded] objects, which have
+     * intrinsic bounds independent of any node assignments.*/
+    fun resolve_bounds(root: LPNode): ClosedInterval<N>
 
     /**
      * Any affine expression can be relaxed to a real affine expression.
@@ -43,8 +65,6 @@ interface LPAffExpr<N : Number>: LPBoundable<N> {
             ?: throw IllegalStateException("Cannot convert $this to an integer expression")
     }
 
-    fun as_expr(n: N): LPAffExpr<N>
-
     /** Yes, this implicitly prohibits unsigned instances of LPAffineExpression. */
     operator fun unaryMinus(): LPAffExpr<N>
 
@@ -55,10 +75,6 @@ interface LPAffExpr<N : Number>: LPBoundable<N> {
     operator fun minus(other: N): LPAffExpr<N>
 
     operator fun minus(other: LPAffExpr<N>): LPAffExpr<N>
-
-    operator fun <M : Number> div(other: LPAffExpr<M>): LPAffExpr<Double> {
-        return this.relax() / other.relax()
-    }
 
     operator fun times(other: N): LPAffExpr<N>
 
@@ -119,4 +135,14 @@ interface LPAffExpr<N : Number>: LPBoundable<N> {
     context(BindCtx)
     val eqz: LPConstraint
         get() = this eq as_expr(dom.zero)
+
+    context(BindCtx)
+    val is_ril_true
+        get() = this ge 1
+
+    context(BindCtx)
+    val is_ril_false
+        get() = this le 1
+
+
 }

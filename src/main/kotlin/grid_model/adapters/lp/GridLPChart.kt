@@ -4,6 +4,7 @@ import grid_model.Entity
 import grid_model.PlaneTileChart
 import grid_model.Tile
 import kulp.LPAffExpr
+import kulp.LPBoundedExpr
 
 // TODO these are somewhat primitive stubs, need to work through a few case studies to see what's
 //  needed and what's easiest to work with
@@ -25,12 +26,14 @@ data class GridLPChart(
     val lptc: LPTileChart,
 )
 
-data class LPEntityChart(val entity_map: Map<List<Int>, Map<Entity<*>, LPAffExpr<Int>>>) {
-    operator fun get(ix: List<Int>, entity: Entity<*>): LPAffExpr<Int> = entity_map[ix]!![entity]!!
+data class LPEntityChart(val entity_map: Map<List<Int>, Map<Entity<*>, LPBoundedExpr<Int>>>) {
+    operator fun get(ix: List<Int>, entity: Entity<*>): LPBoundedExpr<Int> {
+        return entity_map[ix]!![entity]!!.also { require(it.lb == 0 && it.ub == 1) }
+    }
 }
 
 fun interface LPTileChart {
-    operator fun get(grid_ndix: List<Int>, tile: Tile): LPAffExpr<Int>
+    operator fun get(grid_ndix: List<Int>, tile: Tile): LPBoundedExpr<Int>
 }
 
 // TODO potential chart

@@ -88,7 +88,7 @@ private object SudokuProblem : LPProblem() {
 class TestSudoku : ScipTester() {
     @Test
     fun testSudoku() {
-        val solution = solve_problem(SudokuProblem)
+        val solution = solve(SudokuProblem)
         assert(solution.status() == LPSolutionStatus.Optimal)
     }
 }

@@ -7,6 +7,7 @@ import grid_model.dimension.Dim
 import kulp.*
 import kulp.aggregates.LPOneOfN
 import kulp.expressions.IntAffExpr
+import kulp.expressions.IntConstExpr
 import kulp.transforms.ril.RIL
 import kulp.variables.LPBinary
 
@@ -33,25 +34,28 @@ class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
             init {
                 val cxt_expr =
                     node.branch("cxt") {
-                        ril_compile_algebra(chart, gp.sat_algebra).also { "is_sat" { it ge 1 } }
+                        chart.run { "is_sat" { ril_compile_algebra(gp.sat_algebra) ge 1 } }
                     }
                 val init_expr =
                     node.branch("init") {
-                        ril_compile_algebra(chart, gp.setup_predicates).also {
-                            "is_sat" { it ge 1 }
-                        }
+                        chart.run { "is_sat" { ril_compile_algebra(gp.requirement_algebra) ge 1 } }
                     }
-                println("foo")
             }
 
             val obj: LPAffExpr<Double> =
                 node.branch("obj") {
-                    gp.val_algebra
-                        .map { branch { it.value * ril_compile_algebra(chart, it.key).relax() } }
-                        .lp_sum()
+                    chart.run {
+                        gp.val_algebra
+                            .map { branch { it.value * ril_compile_algebra(it.key).relax() } }
+                            .lp_sum()
+                    }
                 }
 
             override fun get_objective(): LPObjective = obj to LPObjectiveSense.Maximize
+
+            // todo need some way to extract the tiles lol
+            // something with signature ix -> Set<Tile> and ix -> Entity?
+
         }
 
     context(NodeCtx)
@@ -109,7 +113,7 @@ class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
                     // in range -> add to reduced_ndix
                     dim_ix in 0 ..< gp.shape[dx] -> reduced_ndix.add(dim_ix)
                     // out of range -> apply boundary conditions
-                    bcs[dx] is HardStop -> return@LPTileChart IntAffExpr(0)
+                    bcs[dx] is HardStop -> return@LPTileChart IntConstExpr(0)
                     bcs[dx] is Wrap -> reduced_ndix.add(dx % gp.shape[dim_ix])
                 }
             }
@@ -137,38 +141,53 @@ class LPGridAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
      *
      * Leaves are handled by dispatch to the predicate compiler.
      */
-    context(NodeCtx)
-    private fun ril_compile_algebra(ch: GridLPChart, predicate_algebra: BAGP): LPAffExpr<Int> {
-        return when (val spa = predicate_algebra.simplify()) {
+    context(NodeCtx, GridLPChart)
+    private fun ril_compile_algebra(predicate_algebra: BAGP): LPAffExpr<Int> {
+        return when (val pa = predicate_algebra) {
             is True -> IntAffExpr(1)
             is False -> IntAffExpr(0)
-            is Pred -> spa.x.ril_compile(ch)
-            // this is pass-through, do not attach
-            is Not -> RIL.not(ril_compile_algebra(ch, spa.x))
-            // cost is the same, so we can minimize the implementation
-            is And ->
-                RIL.and(
-                    spa.xs.mapIndexed { ix, x -> branch("and_$ix") { ril_compile_algebra(ch, x) } }
-                )
-            // it's somewhat arbitrary if we should add nodes here, but we add them for
-            // debugability
-            is Or ->
-                RIL.or(
-                    spa.xs.mapIndexed { ix, x -> branch("or_$ix") { ril_compile_algebra(ch, x) } }
-                )
-            is Xor ->
-                RIL.xor(
-                    spa.xs.mapIndexed { ix, x -> branch("xor_$ix") { ril_compile_algebra(ch, x) } }
-                )
+            is Pred -> pa.atom.ril_compile()
+            is Not -> RIL.not(ril_compile_algebra(pa.x))
+            is And -> RIL.and(pa.xs.branch_each("and") { ril_compile_algebra(it) })
+            is Or -> RIL.or(pa.xs.branch_each("or") { ril_compile_algebra(it) })
+            is Xor -> RIL.xor(pa.xs.branch_each("xor") { ril_compile_algebra(it) })
             is Implies -> {
-                val ril_x = branch("impl_p") { ril_compile_algebra(ch, spa.x) }
-                val ril_y = branch("impl_q") { ril_compile_algebra(ch, spa.y) }
-                RIL.implies(ril_x, ril_y)
+                val ril_p = branch("impl_p") { ril_compile_algebra(pa.p) }
+                val ril_q = branch("impl_q") { ril_compile_algebra(pa.q) }
+                RIL.implies(ril_p, ril_q)
             }
             is Eq -> {
-                val ril_x = branch("eq_a") { ril_compile_algebra(ch, spa.x) }
-                val ril_y = branch("eq_b") { ril_compile_algebra(ch, spa.y) }
-                RIL.equiv(ril_x, ril_y)
+                val ril_a = branch("eq_a") { ril_compile_algebra(pa.a) }
+                val ril_b = branch("eq_b") { ril_compile_algebra(pa.b) }
+                RIL.equiv(ril_a, ril_b)
+            }
+            is SatCount -> {
+                val terms = pa.xs
+                val min_branch =
+                    when {
+                        // special case only those cases that let us skip ril-compiling the terms
+                        // at all. Any extra cases are optimized by RIL itself.
+                        pa.min_sat <= 0 -> RIL.always
+                        pa.min_sat > terms.size -> RIL.never
+                        else -> {
+                            branch("min_sat") {
+                                val ril_terms = terms.branch_each { ril_compile_algebra(it) }
+                                RIL.min_sat(pa.min_sat, ril_terms)
+                            }
+                        }
+                    }
+                val max_branch =
+                    when {
+                        pa.max_sat >= terms.size -> RIL.always
+                        pa.max_sat < 0 -> RIL.never
+                        else -> {
+                            branch("max_sat") {
+                                val compiled_terms = terms.branch_each { ril_compile_algebra(it) }
+                                RIL.max_sat(pa.max_sat, compiled_terms)
+                            }
+                        }
+                    }
+                RIL.and(min_branch, max_branch)
             }
         }
     }

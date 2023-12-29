@@ -95,7 +95,7 @@ private object WhiskasProblem : LPProblem() {
 internal class TestWhiskas : ScipTester() {
     @Test
     fun testWhiskas() {
-        val solution = solve_problem(WhiskasProblem)
+        val solution = solve(WhiskasProblem)
         assertEquals(0.52, solution.objective_value(), 1e-6)
         for ((ingredient, wanted) in
             mapOf(

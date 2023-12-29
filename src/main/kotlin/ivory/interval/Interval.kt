@@ -8,10 +8,16 @@ import ivory.algebra.Ring.Companion.unaryMinus
 
 class ClosedInterval<N : Number>(val lb: N? = null, val ub: N? = null) {
 
+    enum class IvalRel {
+        LLB,
+        Contains,
+        GUB
+    }
+
     constructor(point: N) : this(point, point)
 
     companion object {
-        fun <N : Number> empty(): ClosedInterval<N> = ClosedInterval(null, null)
+        fun <N : Number> unbounded(): ClosedInterval<N> = ClosedInterval(null, null)
 
         context(Ring<N>)
         fun <N : Number> natural_monoid(): Monoid<ClosedInterval<N>> =
@@ -51,6 +57,31 @@ class ClosedInterval<N : Number>(val lb: N? = null, val ub: N? = null) {
         return when {
             other.toDouble() >= 0.0 -> ClosedInterval(b0, b1)
             else -> ClosedInterval(b1, b0)
+        }
+    }
+
+    fun check_in_bounds(n: N): IvalRel {
+        return when {
+            lb != null && ub != null -> {
+                when {
+                    n.toDouble() < lb.toDouble() -> IvalRel.LLB
+                    n.toDouble() > ub.toDouble() -> IvalRel.GUB
+                    else -> IvalRel.Contains
+                }
+            }
+            lb != null -> {
+                when {
+                    n.toDouble() < lb.toDouble() -> IvalRel.LLB
+                    else -> IvalRel.Contains
+                }
+            }
+            ub != null -> {
+                when {
+                    n.toDouble() > ub.toDouble() -> IvalRel.GUB
+                    else -> IvalRel.Contains
+                }
+            }
+            else -> IvalRel.Contains
         }
     }
 

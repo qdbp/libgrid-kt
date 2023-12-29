@@ -1,13 +1,13 @@
 package grid_model
 
-import boolean_algebra.And
-import boolean_algebra.Implies
-import boolean_algebra.Pred
+import boolean_algebra.BooleanExpr.Companion.and
+import boolean_algebra.BooleanExpr.Companion.implies
+import boolean_algebra.BooleanExpr.Companion.pred
+import boolean_algebra.BooleanExpr.Companion.sat_count
 import grid_model.dimension.BBox
 import grid_model.dimension.Dim
 import grid_model.extents.Extent
 import grid_model.planes.Plane
-import grid_model.predicate.BaseGridPredicate
 import grid_model.predicate.IsEntity
 
 /**
@@ -99,12 +99,12 @@ abstract class GridProblem<D : Dim<D>>(val dim: D) {
     open fun boundary_conditions(p: Plane): List<BoundaryCondition> = List(dim.ndim) { HardStop }
 
     /**
-     * Gets any "set-up" conditions for the grid, as predicates. e.g. tiles that are fixed ahead of
+     * Gets any initial conditions for the grid, as predicates. e.g. tiles that are fixed ahead of
      * time, (in future) required flows or potentials.
      */
-    protected abstract fun get_setup_predicates(): Iterable<BaseGridPredicate>
+    protected abstract fun generate_requirement_predicates(): BAGP
 
-    val setup_predicates: BAGP by lazy { And(get_setup_predicates().map { Pred(it) }).simplify() }
+    val requirement_algebra: BAGP by lazy { generate_requirement_predicates() }
 
     /**
      * This is "Phase 1" of the compilation of a Grid Problem.
@@ -121,20 +121,20 @@ abstract class GridProblem<D : Dim<D>>(val dim: D) {
         val point_predicates = mutableListOf<BAGP>()
         entity_extents.map { (ent, ext_map) ->
             for (ent_vec in this.bounds) {
-                val entity_exists = Pred(IsEntity(ent) at ent_vec)
+                val entity_exists = pred(IsEntity(ent) at ent_vec)
                 point_predicates.add(
                     // this really is the core logic of the whole grid: for every (entity, tile)
                     // entity at tile => surrounding tiles match entity's requirements
-                    Implies(
+                    implies(
                         entity_exists,
-                        And(
+                        and(
                             ext_map.values.map { ext -> ext.demands.fmap { it translated ent_vec } }
                         )
                     )
                 )
             }
         }
-        return And(point_predicates).simplify().also { println("SAT ALGEBRA: $it") }
+        return and(point_predicates).also { println("SAT ALGEBRA: $it") }
     }
 
     val sat_algebra: BAGP by lazy { generate_satisfaction_algebra() }
@@ -149,6 +149,9 @@ abstract class GridProblem<D : Dim<D>>(val dim: D) {
 
     val val_algebra: Map<BAGP, Double> by lazy { get_valuation_predicates() }
 
-    protected fun entity_count_valuation(entity: Entity<*>, value: Double): Map<BAGP, Double> =
-        bounds.associateBy({ Pred(IsEntity(entity) at it) }, { value })
+    fun val_entity_count(entity: Entity<*>, value: Double): Map<BAGP, Double> =
+        bounds.associateBy({ pred(IsEntity(entity) at it) }, { value })
+
+    fun req_entity_count(e: Entity<*>, min: Int = 0, max: Int = Int.MAX_VALUE): BAGP =
+        sat_count(bounds.map { pred(IsEntity(e) at it) }, min, max)
 }

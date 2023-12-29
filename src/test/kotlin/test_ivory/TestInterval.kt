@@ -5,7 +5,7 @@ import ivory.interval.ClosedInterval
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-object TestInterval {
+object TestClosedInterval {
 
     @Test
     fun test_basic() {
@@ -28,8 +28,8 @@ object TestInterval {
             val ival3 = ClosedInterval(null, 10)
             assertEquals(ival + ival3, ClosedInterval(null, 20))
 
-            val ival4 = ClosedInterval.empty<Int>()
-            assertEquals(ival + ival4, ClosedInterval.empty())
+            val ival4 = ClosedInterval.unbounded<Int>()
+            assertEquals(ival + ival4, ClosedInterval.unbounded())
         }
     }
 
@@ -54,6 +54,28 @@ object TestInterval {
             val empty = ClosedInterval<Int>(null, null)
             assertEquals(empty, empty * 1)
             assertEquals(empty, empty * 0)
+        }
+    }
+
+    @Test
+    fun test_check_in_bounds() {
+        IntRing.run {
+            val ival = ClosedInterval(0, 10)
+            assertEquals(ClosedInterval.IvalRel.Contains, ival.check_in_bounds(0))
+            assertEquals(ClosedInterval.IvalRel.Contains, ival.check_in_bounds(5))
+            assertEquals(ClosedInterval.IvalRel.Contains, ival.check_in_bounds(10))
+            assertEquals(ClosedInterval.IvalRel.GUB, ival.check_in_bounds(11))
+            assertEquals(ClosedInterval.IvalRel.LLB, ival.check_in_bounds(-1))
+
+            val ival2 = ClosedInterval(null, 10)
+            assertEquals(ClosedInterval.IvalRel.Contains, ival2.check_in_bounds(0))
+            assertEquals(ClosedInterval.IvalRel.Contains, ival2.check_in_bounds(10))
+            assertEquals(ClosedInterval.IvalRel.GUB, ival2.check_in_bounds(11))
+
+            val ival3 = ClosedInterval(0, null)
+            assertEquals(ClosedInterval.IvalRel.Contains, ival3.check_in_bounds(0))
+            assertEquals(ClosedInterval.IvalRel.Contains, ival3.check_in_bounds(5))
+            assertEquals(ClosedInterval.IvalRel.LLB, ival3.check_in_bounds(-5))
         }
     }
 }

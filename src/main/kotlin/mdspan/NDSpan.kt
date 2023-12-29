@@ -35,6 +35,8 @@ interface NDSpan<out T> : List<T> {
     // mapping
     fun <U> map(transform: (T) -> U): NDSpan<U>
 
+    fun <U> mapNdIndexed(transform: (List<Int>, T) -> U): NDSpan<U>
+
     /**
      * returns a new MDSpan with two axes contracted. The two dimensions must be of equal size.
      *

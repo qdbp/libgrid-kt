@@ -177,6 +177,14 @@ private constructor(
     // mapping
     override fun <V> map(transform: (T) -> V): NDSpanImpl<V> = data.map(transform).reshape(shape)
 
+    override fun <U> mapNdIndexed(transform: (List<Int>, T) -> U): NDSpan<U> {
+        val new_data = mutableListOf<U>()
+        for (ndix in ndindex(shape)) {
+            new_data.add(transform(ndix, this[ndix]))
+        }
+        return NDSpanImpl(new_data, shape)
+    }
+
     // subspace map
     override fun <V> apply_subspace_indexed(
         subspace: List<Int>,

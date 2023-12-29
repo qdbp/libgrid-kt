@@ -9,4 +9,4 @@ package ivory.functor
 
 // ad hoc implementation for third party types:
 // let us not forget that functions are functors over the return type
-fun <T, U, V> ((T) -> (U)).fmap(op: (U) -> V): (T) -> V = { op(this(it)) }
+fun <T, U, V> ((T) -> U).fmap(op: (U) -> V): (T) -> V = { op(this(it)) }

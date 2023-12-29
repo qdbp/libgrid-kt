@@ -44,7 +44,7 @@ class TestIntEQZWitness : ScipTester() {
         prob.mk_z()
         prob.objective = prob.lhs!! + prob.rhs!!
 
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(0.0, solution.value_of(prob.z!!))
@@ -64,7 +64,7 @@ class TestIntEQZWitness : ScipTester() {
         prob.objective = prob.lhs!! + prob.rhs!!
         prob.root().bind("force_equal") { z eq 1 }
 
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
 
         assertEquals(LPSolutionStatus.Infeasible, solution.status())
     }
@@ -81,7 +81,7 @@ class TestIntEQZWitness : ScipTester() {
         prob.objective = y - x
 
         prob.root().bind("force_equal") { prob.z!! eq 1 }
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(1.0, solution.value_of(prob.z!!))
@@ -104,7 +104,7 @@ class TestIntEQZWitness : ScipTester() {
 
         prob.root().bind("force_equal") { z eq 1 }
 
-        val solution = solve_problem(prob)
+        val solution = solve(prob)
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(1.0, solution.value_of(z))

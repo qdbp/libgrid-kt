@@ -1,6 +1,8 @@
 package kulp.expressions
 
-import kulp.*
+import kulp.BindCtx
+import kulp.LPAffExpr
+import kulp.LPConstraint
 import kulp.transforms.IntClip
 import kulp.variables.LPVar
 
