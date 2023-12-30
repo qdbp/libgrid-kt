@@ -47,7 +47,7 @@ private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x1: Boo
     }
 }
 
-class TestP1 : ScipTester() {
+class TestP1TinySquares : ScipTester() {
 
     @Test
     fun test_1x1_sq1_only() {

@@ -215,14 +215,22 @@ private constructor(val name: String, private val parent: LPNode?, private var d
     }
 
     /**
-     * Opens the strictest of the Tree Growing Contexts (TGCs) `bind`, and `grow`.
+     * Opens a "binding" node context, which expects exactly at most one renderable to be attached
+     * to it when all is said is done. The function producing the renderable may expand this node
+     * arbitrarily in turn.
      *
      * This context simulates a linear type, where the node must be consumed exactly once by a new
      * renderable to become its node member.
      *
      * Spawns a new child, and wraps it in a [BindCtx]. This node must be claimed and passed to a
-     * new renderable EXACTLY ONCE by invocation of [BindCtx.take]. As with all growing methods, the
+     * new renderable AT MOST ONCE by invocation of [BindCtx.take]. As with all growing methods, the
      * tree may be further expanded arbitrarily.
+     *
+     * If it is not bound to a new renderable, the spawned node will be downgraded to a structural
+     * node. As a rule, a binding context should be requested unless you are intending to produce a
+     * new renderable. The degradation to structural is required for a few "polymorphic" functions
+     * (see [LPAffExpr.reify]) which cannot know in advance if a new renderable will actually be
+     * produced.
      */
     fun <T : LPRenderable> bind(name: String, op: (BindCtx).() -> T): T {
         val new_node = new_child(name, UninitializedData)

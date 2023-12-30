@@ -27,7 +27,7 @@ private object EmptyProblem : TestGridProblem<D2>(D2) {
     override fun get_valuation_predicates(): Map<BAGP, Double> = mapOf()
 }
 
-class TestP0 : ScipTester() {
+class TestP0Empty : ScipTester() {
 
     @Test
     fun test_empty_problem() {

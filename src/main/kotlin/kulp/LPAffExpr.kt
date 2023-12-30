@@ -83,18 +83,15 @@ interface LPAffExpr<N : Number> {
     }
 
     /**
-     * Returns a Constrain-wrapped variable that is constrained to equal this expression.
+     * Returns a new LPVar that is guaranteed to be equal to this expression.
      *
-     * Cost:
-     * - 1 output variable of the same type as the expression
-     * - 2 constraints for the EQ pin
-     * - a pinch of your dignity as a 1337 haxx0r for not being able to get away with using the
-     *   expression directly
+     * This is generally done in the cheapest way possible, and does *not* guarantee that a new
+     * variable will be returned. Specifically, reify is a nop when used on an existing LPVar.
      */
     context(NodeCtx)
     fun reify(): LPVar<N>
 
-    /** Creates a new (free) constraint: this >= other */
+    /** Creates a new constraint: this >= other */
     context(BindCtx)
     infix fun le(other: LPAffExpr<out Number>): LPConstraint {
         // tunnel into NumberInfo
@@ -102,44 +99,46 @@ interface LPAffExpr<N : Number> {
         return LP_LEZ(this - coerced)
     }
 
-    /** Creates a new  constraint: this >= other */
+    /** Creates a new constraint: this >= other */
     context(BindCtx)
     infix fun le(other: Number): LPConstraint = this le as_expr(dom.coerce_number(other))
 
-    /** Creates a new  constraint: this <= 0 */
+    /** Creates a new constraint: this <= 0 */
     context(BindCtx)
     val lez: LPConstraint get() = LP_LEZ(this)
 
-    /** Creates a new  constraint: this <= other */
+    /** Creates a new constraint: this <= other */
     context(BindCtx)
     infix fun ge(other: LPAffExpr<out Number>): LPConstraint = (-this) le (-other)
 
-    /** Creates a new  constraint: this <= other */
+    /** Creates a new constraint: this <= other */
     context(BindCtx)
     infix fun ge(other: Number): LPConstraint = this ge as_expr(dom.coerce_number(other))
 
-    /** Creates a new  constraint: this >= 0 */
+    /** Creates a new constraint: this >= 0 */
     context(BindCtx)
     val gez: LPConstraint
         get() = (-this).lez
 
-    /** Creates a new (free) constraint: this == other */
+    /** Creates a new constraint: this == other */
     context(BindCtx)
     infix fun eq(other: LPAffExpr<N>): LPConstraint = LP_EQZ(this - other)
 
-    /** Creates a new (free) constraint this == other */
+    /** Creates a new constraint this == other */
     context(BindCtx)
     infix fun eq(other: Number): LPConstraint = this eq as_expr(dom.coerce_number(other))
 
-    /** Creates a new (free) constraint: this == 0 */
+    /** Creates a new constraint: this == 0 */
     context(BindCtx)
     val eqz: LPConstraint
         get() = this eq as_expr(dom.zero)
 
+    /** See [RIL] for details. Specifically, this means >= 1 */
     context(BindCtx)
     val is_ril_true
         get() = this ge 1
 
+    /** See [RIL] for details. Specifically, this means <= 0 */
     context(BindCtx)
     val is_ril_false
         get() = this le 1
