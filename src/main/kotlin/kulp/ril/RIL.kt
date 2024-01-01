@@ -1,7 +1,7 @@
-package kulp.transforms.ril
+package kulp.ril
 
 import kulp.*
-import kulp.expressions.IntAffExpr
+import kulp.expressions.IntConstExpr
 import kulp.expressions.bool_clip
 import kulp.expressions.int_clip
 import kulp.transforms.IntEQZWitness
@@ -14,12 +14,14 @@ import kulp.transforms.IntEQZWitness
  * These operate in what shall be termed as the "Relaxed Integer Logic" domain with the following
  * rules:
  * - all values are integral
- * - any value less than or equal to zero is false
- * - any value greater than zero is true
+ * - any value <= 0 <=> false
+ * - any value >= 1 <=> true
  *
- * The outputs are plain affine expression and are not guaranteed to be reified. These expressions
- * will need to be `put` rather than `bind`ed, and for this reason any variables that are created
- * internally are attached to new children of the passed node.
+ * Logical operations, then, are defined as usual respecting the above interpretation.
+ *
+ * The specific value of a relaxed integer logic expression, other than if it is <=0 or >= 1, is
+ * undefined (e.g. if an output is actually ==5, >=3, etc.). It is not guaranteed to be
+ * deterministic and can change at any time. Relying on it for any purpose is undefined behavior.
  *
  * A note to users: RIL logic functions never create "scoping" nodes or otherwise attempt to avoid
  * name collisions. It is entirely the responsibility of the caller to structure RIL invocations
@@ -49,7 +51,7 @@ object RIL {
             // we promise a variable, so we reify the expression
             1 -> xs[0]
             else -> {
-                val sum = xs.bind_each("xor_clip") { it.bool_clip() }.lp_sum()
+                val sum = xs.branch_each { it.bool_clip() }.lp_sum()
                 "xor" { IntEQZWitness(sum - 1) }
             }
         }
@@ -64,7 +66,7 @@ object RIL {
             0 -> always
             1 -> xs[0]
             else -> {
-                val clipped = xs.bind_each("and_clip") { it.int_clip(ub = 1) }
+                val clipped = xs.branch_each { it.int_clip(ub = 1) }
                 clipped.lp_sum() - clipped.size + 1
             }
         }
@@ -78,7 +80,7 @@ object RIL {
         return when (xs.size) {
             0 -> never
             1 -> xs[0]
-            else -> xs.bind_each("or_clip") { it.int_clip(lb = 0) }.lp_sum()
+            else -> xs.branch_each { it.int_clip(lb = 0) }.lp_sum()
         }
     }
 
@@ -87,9 +89,9 @@ object RIL {
 
     context(NodeCtx)
     fun implies(p: LPAffExpr<Int>, q: LPAffExpr<Int>): LPAffExpr<Int> {
-        val not_p = "not_p" { not(p).int_clip(lb = 0) }
+        val not_p = branch { not(p).int_clip(lb = 0) }
         // we don't need an upper bound on q
-        val q_clip = "q_clip" { q.int_clip(lb = 0) }
+        val q_clip = branch { q.int_clip(lb = 0) }
         return not_p + q_clip
     }
 
@@ -101,7 +103,7 @@ object RIL {
             k == 1 -> or(xs)
             k == xs.size -> and(xs)
             k > xs.size -> never
-            else -> 1 - k + xs.bind_each("min_sat") { it.bool_clip() }.lp_sum()
+            else -> 1 - k + xs.branch_each { it.bool_clip() }.lp_sum()
         }
     }
 
@@ -112,13 +114,13 @@ object RIL {
             k == 0 -> and(xs.map { not(it) })
             k == xs.size - 1 -> or(xs.map { not(it) })
             k >= xs.size -> always
-            else -> 1 + k - xs.bind_each("max_sat") { it.bool_clip() }.lp_sum()
+            else -> 1 + k - xs.branch_each { it.bool_clip() }.lp_sum()
         }
     }
 
     fun not(p: LPAffExpr<Int>): LPAffExpr<Int> = 1 - p
 
-    val always: LPAffExpr<Int> = IntAffExpr(1)
+    val always: LPAffExpr<Int> = IntConstExpr(1)
 
-    val never: LPAffExpr<Int> = IntAffExpr(0)
+    val never: LPAffExpr<Int> = IntConstExpr(0)
 }

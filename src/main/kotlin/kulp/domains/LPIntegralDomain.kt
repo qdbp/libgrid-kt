@@ -7,7 +7,7 @@ import kulp.expressions.IntAffExpr
 import kulp.variables.LPInteger
 import kulp.variables.LPVar
 
-object LPIntegralDomain :
+data object LPIntegralDomain :
     LPDomain<Int>(
         klass = Int::class,
         ring = IntRing,

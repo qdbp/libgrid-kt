@@ -3,16 +3,15 @@ package kulp.expressions
 import kulp.BindCtx
 import kulp.LPAffExpr
 import kulp.LPConstraint
+import kulp.NodeCtx
 import kulp.transforms.IntClip
-import kulp.variables.LPVar
 
-// extensions on LPAffExpr<Int> to be more generic
-context(BindCtx)
-fun LPAffExpr<Int>.int_clip(lb: Int? = null, ub: Int? = null): LPVar<Int> =
+context(NodeCtx)
+fun LPAffExpr<Int>.int_clip(lb: Int? = null, ub: Int? = null): LPAffExpr<Int> =
     IntClip.clip(this, lb, ub)
 
-context(BindCtx)
-fun LPAffExpr<Int>.bool_clip(): LPVar<Int> = int_clip(0, 1)
+context(NodeCtx)
+fun LPAffExpr<Int>.bool_clip(): LPAffExpr<Int> = int_clip(0, 1)
 
 // int expressions support strict inequality
 context(BindCtx)

@@ -43,7 +43,7 @@ abstract class Plane(protected val id: PlaneIdentifier) {
 
 sealed class PlaneIdentifier
 
-private object Universal : PlaneIdentifier()
+private data object Universal : PlaneIdentifier()
 
 private class Unique : PlaneIdentifier() {
     override fun equals(other: Any?): Boolean {

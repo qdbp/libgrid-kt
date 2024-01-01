@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package boolean_algebra
 
 import boolean_algebra.BooleanExpr.Companion.pred
@@ -76,11 +78,15 @@ sealed class BooleanExpr<out T>(protected val terms: List<BooleanExpr<T>>) {
         )
     }
 
-    override fun toString(): String {
-        return "${this.javaClass.simpleName}[\n" +
-            terms.map { it.toString().split("\n").map { "\t$it\n" }.joinToString { "" } } +
-            "\n]"
+    private fun get_string_lines(): List<String> {
+        val out = mutableListOf(this.javaClass.simpleName)
+        for (term in terms) {
+            out += term.toString().split("\n").map { "\t$it" }
+        }
+        return out
     }
+
+    override fun toString(): String = get_string_lines().joinToString("\n")
 
     /**
      * Tests if two boolean algebra trees are: a) structurally identical b) matched leaves are equal
@@ -241,12 +247,14 @@ sealed class BooleanExpr<out T>(protected val terms: List<BooleanExpr<T>>) {
             xs: List<BooleanExpr<T>>
         ): BooleanExpr<T>? {
             // trivial cases
-            if (min_sat > xs.size) return False
-            if (min_sat == 0 && max_sat >= xs.size) return True
-            if (min_sat == xs.size) return and(xs)
-            // simple cases -- these are cheaper as and/or than as sat_count
-            if (min_sat == 1 && max_sat == xs.size) return or(xs)
-            return null
+            return when {
+                min_sat > xs.size -> False
+                min_sat == 0 && max_sat >= xs.size -> True
+                min_sat == xs.size -> and(xs)
+                // simple cases -- these are cheaper as and/or than as sat_count
+                min_sat == 1 && max_sat == xs.size -> or(xs)
+                else -> null
+            }
         }
 
         fun <T> sat_count(
@@ -256,7 +264,7 @@ sealed class BooleanExpr<out T>(protected val terms: List<BooleanExpr<T>>) {
         ): BooleanExpr<T> {
             var min_rem_sat = maxOf(0, min_sat)
             var max_rem_sat = minOf(xs.size, max_sat)
-            require(min_rem_sat <= max_rem_sat) { "min_sat=$min_sat must be <= max_sat=$max_sat" }
+            if (min_rem_sat > max_rem_sat) return False
             val new_xs = mutableListOf<BooleanExpr<T>>()
             for (x in xs) {
                 when (x) {

@@ -41,3 +41,5 @@ build/
 **/src/**/debug.kt
 **/src/**/debug**.kt
 !/src/main/kotlin/debug.kt
+/gradlew
+/gradlew.bat

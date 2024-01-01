@@ -21,6 +21,7 @@ sealed class Num(private val impl: Any) {
     }
 }
 
+@Suppress("unused")
 val KClass<Num>.impl_type: KClass<out Any>
     get() =
         when (this) {

@@ -40,7 +40,7 @@ interface LPAffExpr<N : Number> {
     /** All expressions can compute bounds for themselves, given a root node against which
      * variable bounds be looked up. This is in contrast with [LPBounded] objects, which have
      * intrinsic bounds independent of any node assignments.*/
-    fun resolve_bounds(root: LPNode): ClosedInterval<N>
+    fun compute_bounds(root: LPNode): ClosedInterval<N>
 
     /**
      * Any affine expression can be relaxed to a real affine expression.
@@ -133,12 +133,12 @@ interface LPAffExpr<N : Number> {
     val eqz: LPConstraint
         get() = this eq as_expr(dom.zero)
 
-    /** See [RIL] for details. Specifically, this means >= 1 */
+    /** See [kulp.ril.RIL] for details. Specifically, this means >= 1 */
     context(BindCtx)
     val is_ril_true
         get() = this ge 1
 
-    /** See [RIL] for details. Specifically, this means <= 0 */
+    /** See [kulp.ril.RIL] for details. Specifically, this means <= 0 */
     context(BindCtx)
     val is_ril_false
         get() = this le 1

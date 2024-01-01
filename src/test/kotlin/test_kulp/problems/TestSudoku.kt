@@ -7,8 +7,8 @@ import mdspan.IDX
 import mdspan.SLC
 import mdspan.lp_sum
 import mdspan.ndindex
-import org.junit.jupiter.api.Test
 import test_kulp.ScipTester
+import kotlin.test.Test
 
 private object SudokuProblem : LPProblem() {
 
@@ -88,7 +88,7 @@ private object SudokuProblem : LPProblem() {
 class TestSudoku : ScipTester() {
     @Test
     fun testSudoku() {
-        val solution = solve(SudokuProblem)
+        val solution = SudokuProblem.solve()
         assert(solution.status() == LPSolutionStatus.Optimal)
     }
 }

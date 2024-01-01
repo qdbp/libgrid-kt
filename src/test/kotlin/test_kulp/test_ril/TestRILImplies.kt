@@ -4,10 +4,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kulp.LPAffExpr
 import kulp.LPSolutionStatus
-import kulp.transforms.ril.RIL
+import kulp.ril.RIL
 import kulp.use
-import org.junit.jupiter.api.Assertions.assertTrue
 import test_kulp.ScipTester
+import kotlin.test.assertTrue
 
 private class ImpliesRILProblem(
     mk_objective: (LPAffExpr<Int>, LPAffExpr<Int>) -> LPAffExpr<Int>
@@ -21,7 +21,7 @@ class TestRILImplies : ScipTester() {
     @Test
     fun witnesses_true_not_p() {
         val prob = ImpliesRILProblem { x, y -> -x - y }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(-10.0, solution.value_of(prob.x))
         assertEquals(-10.0, solution.value_of(prob.y))
@@ -31,7 +31,7 @@ class TestRILImplies : ScipTester() {
     @Test
     fun witnesses_true_q() {
         val prob = ImpliesRILProblem { x, y -> x + y }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(10.0, solution.value_of(prob.x))
         assertEquals(10.0, solution.value_of(prob.y))
@@ -41,7 +41,7 @@ class TestRILImplies : ScipTester() {
     @Test
     fun witnesses_false() {
         val prob = ImpliesRILProblem { x, y -> x - y }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(10.0, solution.value_of(prob.x))
         assertEquals(-10.0, solution.value_of(prob.y))
@@ -52,7 +52,7 @@ class TestRILImplies : ScipTester() {
     fun binds_feasible() {
         val prob = ImpliesRILProblem { x, y -> x - y * 2 }
         prob use { "test_bind_pin" { witness eq 1 } }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         // can get this value by either not p or q route, but it's always 9
         assertEquals(0.0, solution.value_of(prob.x))
@@ -67,7 +67,7 @@ class TestRILImplies : ScipTester() {
         prob use { "test_pin_x" { x ge 1 } }
         prob use { "test_pin_y" { y le 0 } }
         prob use { "test_bind_pin" { witness eq 1 } }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Infeasible, solution.status())
     }
 }

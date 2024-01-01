@@ -1,5 +1,6 @@
 package grid_model
 
+import grid_model.planes.Plane
 import kulp.lp_name
 
 /**
@@ -32,8 +33,8 @@ data class BosonicTile(val name: String) : Tile {
  * e.g the body tiles of a solid geometric shape: a right corner cannot overlap a left corner, so
  * they must occupy identity "levels".
  *
- * TODO make these Vec? really not much value threading the dim genericity this low, we can
- *  probably assume we have it right at this point and just use List<Int>
+ * TODO make these Vec? really not much value threading the dim genericity this low, we can probably
+ * assume we have it right at this point and just use List<Int>
  */
 data class FermionicTile(val name: String, val vec: List<Int>) : Tile {
     override fun tile_name(): String = "${name}_${vec.lp_name}"

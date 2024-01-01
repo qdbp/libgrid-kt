@@ -8,5 +8,4 @@ data class RealAffExpr(override val terms: Map<LPPath, Double>, override val con
 
     constructor(constant: Number) : this(mapOf(), constant.toDouble())
 
-    constructor() : this(0.0)
 }

@@ -1,9 +1,14 @@
 package kulp
 
 import kulp.variables.LPVar
+import kulp.variables.LiftedLPVar
 import mdspan.NDSpan
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
 const val LP_NAMESPACE_SEP = "."
+
+private data object Private
 
 /**
  * A suggestive type alias that tells us that what we have is an unbound renderable that requires a
@@ -74,7 +79,7 @@ private constructor(val name: String, private val parent: LPNode?, private var d
     private val root: LPNode
         get() = parent?.root ?: this
 
-    fun find_rel(path: LPPath): LPNode? {
+    private fun find_rel(path: LPPath): LPNode? {
         var cur: LPNode = this
         for (segment in path.segments) {
             cur = cur.children[segment] ?: return null
@@ -85,7 +90,11 @@ private constructor(val name: String, private val parent: LPNode?, private var d
     fun find_var(path: LPPath): LPVar<*>? {
         return find(path)?.let {
             if (it.data !is Data) return null
-            it.renderable as? LPVar<*>
+            return when (it.renderable) {
+                is LPVar<*> -> it.renderable as LPVar<*>
+                is LiftedLPVar<*> -> (it.renderable as LiftedLPVar<*>).lower()
+                else -> null
+            }
         }
     }
 
@@ -151,6 +160,9 @@ private constructor(val name: String, private val parent: LPNode?, private var d
         // some infix hipster sugar
         operator fun <T : LPRenderable> String.invoke(op: (BindCtx).() -> T): T =
             node.bind(this, op)
+
+        operator fun <T : LPRenderable> List<Int>.invoke(op: (BindCtx).() -> T): T =
+            node.bind(lp_name, op)
 
         fun <T : LPRenderable, V> List<V>.bind_each(base: String, op: (BindCtx).(V) -> T): List<T> =
             when (this) {
@@ -253,9 +265,27 @@ private constructor(val name: String, private val parent: LPNode?, private var d
                 // as reify (which binds on general expressions but is a nop on variables).
                 new_node.data = Structural
             } else {
-                new_node.data = Data(renderable)
+                when (renderable) {
+                    is LiftedLPVar<*> -> new_node.data = Data(renderable.lower())
+                    else -> new_node.data = Data(renderable)
+                }
             }
             return renderable
+        }
+    }
+
+    // hipster delegate sugar
+    /**
+     * Provides binding through a delegate factory. Allows to derive the renderable name from the
+     * property name, avoiding needing to type the two out twice.
+     */
+    infix fun <T : LPRenderable> bind(op: (BindCtx).() -> T) = Private.run { BDP(this@LPNode, op) }
+
+    context(Private)
+    class BDP<T : LPRenderable>(private val parent: LPNode, val op: (BindCtx).() -> T) {
+        operator fun provideDelegate(thisRef: Any?, prop: KProperty<*>): ReadOnlyProperty<Any?, T> {
+            val out = parent.bind(prop.name, op)
+            return ReadOnlyProperty { _, _ -> out }
         }
     }
 
@@ -281,10 +311,7 @@ private constructor(val name: String, private val parent: LPNode?, private var d
     infix fun <T> branch(op: (NodeCtx).() -> T): T = branch(new_anon_name(), op)
 
     /** Opens a node context against this node, without spawning an intermediate child. */
-    operator fun <T> invoke(op: (NodeCtx).() -> T): T =
-        with(NodeCtx(this)) {
-            return op()
-        }
+    operator fun <T> invoke(op: (NodeCtx).() -> T): T = NodeCtx(this).run(op)
 
     /**
      * Flattens the tree, expanding any non-primitive nodes (according to the context), while adding
@@ -304,24 +331,24 @@ private constructor(val name: String, private val parent: LPNode?, private var d
             val path = next.path
             assert(path !in out_map)
 
-            (next.data).let {
-                when (it) {
+            (next.data).let { nd ->
+                when (nd) {
                     is Data -> {
-                        if (it.rnd.node !== next) {
+                        if (nd.rnd.node !== next) {
                             throw IllegalArgumentException(
                                 "Renderable ${next.renderable} has a different node than $next " +
-                                    "(namely, ${it.rnd.node})"
+                                    "(namely, ${nd.rnd.node})"
                             )
                         }
-                        val support = ctx.check_support(it.rnd)
+                        val support = ctx.check_support(nd.rnd)
                         when (support) {
                             RenderSupport.PrimitiveVariable,
                             RenderSupport.PrimitiveConstraint -> {
-                                out_map[path] = it.rnd
+                                out_map[path] = nd.rnd
                             }
                             RenderSupport.Compound -> {
-                                next { it.rnd.decompose(ctx) }
-                                it.rnd.as_primitive(ctx)?.let { out_map[path] = it }
+                                next { nd.rnd.decompose(ctx) }
+                                nd.rnd.as_primitive(ctx)?.let { out_map[path] = it }
                             }
                             RenderSupport.Unsupported ->
                                 throw IllegalArgumentException(
@@ -348,19 +375,6 @@ private constructor(val name: String, private val parent: LPNode?, private var d
         return out_map
     }
 
-    /**
-     * Estimate the computational cost of adding this node to the model.
-     *
-     * Renderables will be expanded in a cloned tree, and will not affect the state of the original
-     * tree.
-     */
-    fun subnode_cost(ctx: LPContext): Int? =
-        try {
-            clone_subnode().render(ctx).values.sumOf { ctx.estimate_primitive_cost(it) }
-        } catch (e: UnsupportedRenderableError) {
-            null
-        }
-
     val path: LPPath
         get() {
             val out = mutableListOf<String>()
@@ -379,7 +393,7 @@ private constructor(val name: String, private val parent: LPNode?, private var d
 
     /** Dumps a flat list of full paths of all nodes in the tree, in depth-first order. */
     fun dump_full_node_dfs(indent: Int = 0) {
-        println("    ".repeat(indent) + "$data @ ${path}")
+        println("    ".repeat(indent) + "$data @ $path")
         for (c in children.values) c.dump_full_node_dfs(indent + 1)
     }
 

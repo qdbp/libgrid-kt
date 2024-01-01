@@ -4,5 +4,5 @@ import kulp.LPProblem
 import kulp.LPSolution
 
 fun interface LPSolver {
-    fun solve(prob: LPProblem): LPSolution
+    fun LPProblem.solve(): LPSolution
 }

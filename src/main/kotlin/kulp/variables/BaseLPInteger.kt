@@ -1,6 +1,8 @@
 package kulp.variables
 
-import kulp.*
+import kulp.BindCtx
+import kulp.LPAffExpr
+import kulp.NodeBoundRenderable
 import kulp.domains.LPDomain
 import kulp.domains.LPIntegralDomain
 import kulp.expressions.IntAffExpr

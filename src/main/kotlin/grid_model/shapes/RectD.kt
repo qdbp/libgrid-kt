@@ -1,10 +1,8 @@
 package grid_model.shapes
 
 import grid_model.Shape
-import grid_model.dimension.BBox
-import grid_model.dimension.D2
-import grid_model.dimension.Dim
-import grid_model.dimension.Vec
+import grid_model.dimension.*
+import grid_model.dimension.Vec.Companion.ones
 import grid_model.dimension.Vec.Companion.vec
 import grid_model.dimension.Vec.Companion.zvec
 import ivory.order.PartialOrder.Companion.pleq
@@ -20,9 +18,16 @@ open class RectD<D : Dim<D>>(val lower: Vec<D>, val upper: Vec<D>, dim: D) : Sha
 
     // synergy
     override fun compute_points(): Set<Vec<D>> = BBox(lower, upper).points().toSet()
-}
 
-class Rect2(lower: Vec<D2>, upper: Vec<D2>) : RectD<D2>(lower, upper, D2) {
+    companion object {
 
-    constructor(w: Int, h: Int) : this(D2.vec(0, 0), D2.vec(w - 1, h - 1))
+        private inline fun <reified D : Dim<D>> rect(vararg coords: Int): RectD<D> {
+            val d = D::class.fix()
+            return RectD(d.vec(*coords) - d.ones(), d)
+        }
+
+        fun rect(w: Int, h: Int): RectD<D2> = rect<D2>(w, h)
+
+        fun rect(w: Int, h: Int, d: Int): RectD<D3> = rect<D3>(w, h, d)
+    }
 }

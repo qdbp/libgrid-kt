@@ -1,7 +1,6 @@
 package grid_model
 
 import grid_model.dimension.Dim
-import grid_model.extents.Extent
 import grid_model.planes.Plane
 
 /**
@@ -12,6 +11,7 @@ import grid_model.planes.Plane
  */
 interface Entity<D : Dim<D>> {
     val name: String
+        get() = javaClass.simpleName
 
     /** Each entity must provide a list of planes it is active in. */
     fun active_planes(): Collection<Plane>

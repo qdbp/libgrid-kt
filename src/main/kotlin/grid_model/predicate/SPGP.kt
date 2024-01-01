@@ -13,6 +13,6 @@ import grid_model.dimension.Vec
  * One of the most fundamental building blocks of a grid model, this predicate represents a
  * particular single-point condition being true at a given index.
  */
-data class SPGP<D : Dim<D>>(val vec: Vec<D>, val cond: SinglePointCondition) : BaseGridPredicate {
+data class SPGP<D : Dim<D>>(val vec: Vec<D>, val cond: SinglePointCondition) : GridPredicate {
     infix fun translated(shift: Vec<D>): SPGP<D> = SPGP(vec + shift, cond)
 }

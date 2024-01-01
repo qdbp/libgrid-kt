@@ -1,15 +1,12 @@
 package kulp.expressions
 
 import ivory.interval.ClosedInterval
-import kulp.LPAffExpr
-import kulp.LPNode
-import kulp.LPPath
-import kulp.NodeCtx
+import kulp.*
 import kulp.variables.LPVar
 
 abstract class LPSumExpr<N : Number> : LPAffExpr<N> {
 
-    override fun resolve_bounds(root: LPNode): ClosedInterval<N> {
+    override fun compute_bounds(root: LPNode): ClosedInterval<N> {
         dom.ring.run {
             var out: ClosedInterval<N> = ClosedInterval(constant)
             for ((path, coef) in terms) {
@@ -18,7 +15,7 @@ abstract class LPSumExpr<N : Number> : LPAffExpr<N> {
                         ?: throw IllegalStateException(
                             "Expr term path $path resolved to non-var ${root.find(path)}."
                         )
-                out += (resolved as LPVar<N>).bounds * coef
+                out += (resolved as LPBounded<N>).bounds * coef
             }
             return out
         }
@@ -37,7 +34,7 @@ abstract class LPSumExpr<N : Number> : LPAffExpr<N> {
     final override fun reify(): LPVar<N> = "reif" {
         // setting the bound here is not necessary for the solver, since this variable is pinned.
         // it will, however, propagate static bounds knowledge to other kulp code.
-        dom.newvar(resolve_bounds(root)).requiring("pin") { it eq this@LPSumExpr }
+        dom.newvar(compute_bounds(root)).requiring("pin") { it eq this@LPSumExpr }
     }
 
     final override fun unaryMinus(): LPAffExpr<N> =
@@ -68,5 +65,3 @@ abstract class LPSumExpr<N : Number> : LPAffExpr<N> {
             return newexpr(terms, constant + other)
         }
 }
-
-

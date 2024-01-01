@@ -5,8 +5,8 @@ import kotlin.test.assertNotNull
 import kulp.*
 import kulp.constraints.LP_BND
 import kulp.variables.LPNonnegativeReal
-import org.junit.jupiter.api.Test
 import test_kulp.ScipTester
+import kotlin.test.Test
 
 // implementing the example from pulp at
 // https://coin-or.github.io/pulp/CaseStudies/a_blending_problem.html
@@ -95,7 +95,7 @@ private object WhiskasProblem : LPProblem() {
 internal class TestWhiskas : ScipTester() {
     @Test
     fun testWhiskas() {
-        val solution = solve(WhiskasProblem)
+        val solution = WhiskasProblem.solve()
         assertEquals(0.52, solution.objective_value(), 1e-6)
         for ((ingredient, wanted) in
             mapOf(

@@ -1,6 +1,6 @@
 package grid_model
 
 import boolean_algebra.BooleanExpr
-import grid_model.predicate.BaseGridPredicate
+import grid_model.predicate.GridPredicate
 
-typealias BAGP = BooleanExpr<BaseGridPredicate>
+typealias BEGP = BooleanExpr<GridPredicate>

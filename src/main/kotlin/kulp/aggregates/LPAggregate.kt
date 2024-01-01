@@ -1,7 +1,6 @@
 package kulp.aggregates
 
 import kulp.*
-import kulp.variables.LPVar
 import mdspan.NDSpan
 import mdspan.NDSpanImpl
 
@@ -16,24 +15,21 @@ import mdspan.NDSpanImpl
  *   constraints (such as sum-to-one for [kulp.aggregates.LPOneOfN]) that are applied to the
  *   aggregate, as well as any auxiliaries that are not the grid variables themselves.
  */
-abstract class LPAggregate<V : LPVar<*>>
+abstract class LPAggregate<E : LPAffExpr<*>>
 private constructor(
     override val node: LPNode,
-    val arr: NDSpan<V>,
-    private val constraint_subspace: List<Int>,
-    // this is a bit cluttered, but packed away into the private constructor it should not leak
-    // any messiness. We need to do our initialization in the constructor argument sequence to
-    // be able to use delegation
-) : LPRenderable, NDSpan<V> by arr {
+    val arr: NDSpan<E>,
+    protected val constraint_subspace: List<Int>
+) : LPRenderable, NDSpan<E> by arr {
 
     protected constructor(
         node: LPNode,
         shape: List<Int>,
-        definition: (BindCtx).(List<Int>) -> V,
+        definition: (NodeCtx).(List<Int>) -> E,
         constraint_subspace: List<Int> = listOf(shape.size - 1),
     ) : this(
         node,
-        NDSpanImpl.full_by(shape) { node.bind(it.lp_name) { definition(it) } },
+        NDSpanImpl.full_by(shape) { ndix -> node { definition(ndix) } },
         constraint_subspace
     )
 
@@ -45,5 +41,5 @@ private constructor(
     }
 
     context(NodeCtx)
-    abstract fun decompose_subarray(ctx: LPContext, subarray: NDSpan<V>)
+    abstract fun decompose_subarray(ctx: LPContext, subarray: NDSpan<E>)
 }

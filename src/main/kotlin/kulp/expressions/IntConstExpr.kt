@@ -1,15 +1,26 @@
 package kulp.expressions
 
 import ivory.interval.ClosedInterval
+import kulp.LPAffExpr
 import kulp.LPBounded
-import kulp.LPBoundedExpr
 import kulp.LPNode
 import kulp.LPPath
 
-class IntConstExpr(override val constant: Int) : BaseLPIntExpr(), LPBoundedExpr<Int> {
-    override val terms: Map<LPPath, Int> = mapOf()
+open class IntConstExpr(final override val constant: Int) :
+    BaseLPIntExpr(), LPAffExpr<Int>, LPBounded<Int> {
+    final override val terms: Map<LPPath, Int> = mapOf()
 
-    override fun resolve_bounds(root: LPNode): ClosedInterval<Int> = bounds
+    final override fun compute_bounds(root: LPNode): ClosedInterval<Int> = bounds
 
     override val bounds: ClosedInterval<Int> = ClosedInterval(constant)
+
+    companion object {
+        val Int.lp: LPAffExpr<Int>
+            get() =
+                when {
+                    this == 0 -> Zero
+                    this == 1 -> One
+                    else -> IntConstExpr(this)
+                }
+    }
 }

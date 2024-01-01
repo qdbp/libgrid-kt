@@ -1,7 +1,6 @@
 package grid_model
 
 import grid_model.dimension.Dim
-import grid_model.extents.Extent
 import grid_model.extents.SimpleBosonicExtent
 import grid_model.extents.SimpleFermionicExtent
 import grid_model.planes.Plane
@@ -16,11 +15,9 @@ class NewEntityContext<D : Dim<D>>(val dim: D, val name: String) {
 
     operator fun Plane.invoke(op: context(NewExtentContext<D>) () -> Extent<D>) {
         with (this@NewEntityContext) {
-            val nex_ctx = NewExtentContext(dim)
+            val nex_ctx = NewExtentContext(dim, this@Plane)
             plane_extent_map[this@Plane] = op(nex_ctx)
         }
-        // val nex_ctx = NewExtentContext(dim, this@NewEntityContext)
-        // with(this) { plane_extent_map[this] = op(this@NewEntityContext, nex_ctx) }
     }
     operator fun invoke(op: context(NewEntityContext<D>) () -> Unit): Entity<D> {
         op(this)
@@ -32,7 +29,7 @@ class NewEntityContext<D : Dim<D>>(val dim: D, val name: String) {
             override fun <P : Plane> get_extent_within(plane: P): Extent<D>? =
                 plane_extent_map[plane]
 
-            override fun toString(): String = "enti_$name"
+            override fun toString(): String = "ent_$name"
 
             override fun hashCode(): Int = (Entity<*>::javaClass to name).hashCode()
 
@@ -42,9 +39,9 @@ class NewEntityContext<D : Dim<D>>(val dim: D, val name: String) {
 }
 
 context(NewEntityContext<D>)
-class NewExtentContext<D : Dim<D>>(val dim: D) {
+class NewExtentContext<D : Dim<D>>(val dim: D, val plane: Plane) {
 
-    val Shape<D>.fermionic: Extent<D> get() = SimpleFermionicExtent(name, this@Shape)
+    val Shape<D>.fermi: Extent<D> get() = SimpleFermionicExtent(name, this@Shape)
 
-    val Shape<D>.bosonic: Extent<D> get() = SimpleBosonicExtent(name, this@Shape)
+    val Shape<D>.boson: Extent<D> get() = SimpleBosonicExtent(name, this@Shape)
 }

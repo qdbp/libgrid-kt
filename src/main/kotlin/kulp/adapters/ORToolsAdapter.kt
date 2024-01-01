@@ -14,9 +14,7 @@ import kulp.variables.BaseLPReal
 import kulp.variables.LPBinary
 import kulp.variables.LPVar
 
-context(MPSolver)
-class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
-    LPAdapter<MPSolver, Unit>(problem, ctx) {
+class ORToolsAdapter(solver: MPSolver, ctx: MipContext) : LPAdapter<MPSolver>(solver, ctx) {
 
     class ORToolsSolution(
         private val objective_value: Double?,
@@ -86,7 +84,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                             makeNumVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
                         is LPIntegralDomain ->
                             makeIntVar(-MPSolver.infinity(), MPSolver.infinity(), ortools_name)
-                        else -> throw NotImplementedError("Unknown domain ${variable}")
+                        else -> throw NotImplementedError("Unknown domain $variable")
                     }
             }
         known_variables[path] = Pair(ortools_var, variable)
@@ -107,7 +105,6 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                                 setCoefficient(it.first, coef.toDouble())
                             }
                                 ?: run {
-                                    problem.node.dump_full_node_dfs()
                                     throw IllegalArgumentException(
                                         "Unknown variable $variable in constraint ${constraint}. ${constraint.lhs.terms.keys} Bug??."
                                     )
@@ -132,7 +129,6 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
                 ortools_objective.setCoefficient(it.first, term.value)
             }
                 ?: run {
-                    problem.node.dump_full_node_dfs()
                     throw IllegalArgumentException(
                         "Unknown variable ${term.key} in objective. Bug??."
                     )
@@ -146,9 +142,7 @@ class ORToolsAdapter(problem: LPProblem, ctx: MipContext) :
     }
 
     context(MPSolver)
-    override fun run_solver(params: Unit?): ORToolsSolution {
-        // TODO implement params properly
-
+    override fun execute_solver(): ORToolsSolution {
         val result = solve()
         val value_map =
             known_variables

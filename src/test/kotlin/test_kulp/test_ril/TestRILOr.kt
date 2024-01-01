@@ -5,10 +5,10 @@ import kotlin.test.assertEquals
 import kulp.LPAffExpr
 import kulp.LPSolutionStatus
 import kulp.times
-import kulp.transforms.ril.RIL
+import kulp.ril.RIL
 import kulp.use
-import org.junit.jupiter.api.Assertions.assertTrue
 import test_kulp.ScipTester
+import kotlin.test.assertTrue
 
 private class OrRILProblem(mk_objective: (LPAffExpr<Int>, LPAffExpr<Int>) -> LPAffExpr<Int>) :
     RILProblem(mk_objective) {
@@ -23,7 +23,7 @@ class TestRILOr : ScipTester() {
     @Test
     fun witnesses_true_both() {
         val prob = OrRILProblem { x, y -> x + y }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(10.0, solution.value_of(prob.x))
         assertEquals(10.0, solution.value_of(prob.y))
@@ -35,7 +35,7 @@ class TestRILOr : ScipTester() {
     @Test
     fun witnesses_true_one() {
         val prob = OrRILProblem { x, y -> y - x }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(-10.0, solution.value_of(prob.x))
         assertEquals(10.0, solution.value_of(prob.y))
@@ -47,7 +47,7 @@ class TestRILOr : ScipTester() {
     @Test
     fun witnesses_false() {
         val prob = OrRILProblem { x, y -> -x - y }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(-10.0, solution.value_of(prob.x))
         assertEquals(-10.0, solution.value_of(prob.y))
@@ -60,7 +60,7 @@ class TestRILOr : ScipTester() {
     fun binds_feasible() {
         val prob = OrRILProblem { x, y -> -x - 2 * y }
         prob use { "test_bind_pin" { witness eq 1 } }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(0.0, solution.value_of(prob.empty_witness))
         assertEquals(1.0, solution.value_of(prob.witness))
@@ -75,7 +75,7 @@ class TestRILOr : ScipTester() {
         prob use { "test_pin_x" { x le -1 } }
         prob use { "test_pin_y" { y le -1 } }
         prob use { "test_bind_pin" { witness eq 1 } }
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Infeasible, solution.status())
     }
 }

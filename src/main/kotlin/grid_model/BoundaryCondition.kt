@@ -9,7 +9,7 @@ package grid_model
 sealed class BoundaryCondition
 
 /** No tiles of this plane are valid outside the grid bounds. */
-object HardStop : BoundaryCondition()
+data object HardStop : BoundaryCondition()
 
 /** Stepping out of bounds along this dimension will wrap around back into range. */
-object Wrap : BoundaryCondition()
+data object Wrap : BoundaryCondition()

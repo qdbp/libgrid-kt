@@ -2,6 +2,7 @@ package kulp.transforms
 
 import ivory.interval.ClosedInterval
 import kulp.*
+import kulp.expressions.IntConstExpr
 import kulp.expressions.gt
 import kulp.variables.LPBinary
 import kulp.variables.LPVar
@@ -38,28 +39,41 @@ private constructor(
 
         // clip is a very expensive operation, so we hide the constructor and instead provide
         // optimized specialization for common cases
-        context(BindCtx)
+        context(NodeCtx)
         @Suppress("UNCHECKED_CAST")
-        fun clip(x: LPAffExpr<Int>, clip_lb: Int?, clip_ub: Int?): LPVar<Int> {
+        fun clip(x: LPAffExpr<Int>, clip_lb: Int?, clip_ub: Int?): LPAffExpr<Int> {
             val base_bounds: ClosedInterval<Int> =
                 when (x) {
                     is LPBounded<*> -> x.bounds
-                    else -> x.resolve_bounds(root)
+                    else -> x.compute_bounds(root)
                 }
                     as ClosedInterval<Int>
 
+            require(clip_lb != null || clip_ub != null)
+            if (clip_lb != null && clip_ub != null) {
+                require(clip_lb <= clip_ub)
+                if (clip_lb == clip_ub) return IntConstExpr(clip_lb)
+            }
+
             // if our clip lower bound <= the proven inherent lower bound, we can skip it
-            // if, on the other hand, it is greater than the proven upper bound, it's infeasible
+            // if, on the other hand, it is greater than the proven upper bound, we can simplify
+            // to a constant
             val resolved_clip_lb =
                 clip_lb?.let { clb ->
                     base_bounds.check_in_bounds(clb).let {
                         when (it) {
+                            // if our lower bound is below the inherent lower bound, we can skip
+                            // pinning it.
                             ClosedInterval.IvalRel.LLB -> null
+                            // if our lower bound is strictly within the inherent bounds, we need to
+                            // pin
                             ClosedInterval.IvalRel.Contains ->
                                 // need this annoying caveat to also elide when we're on the edge
                                 // of a finite interval without ruling that case infeasible.
                                 if (clb > (base_bounds.lb ?: Int.MIN_VALUE)) clb else null
-                            ClosedInterval.IvalRel.GUB -> throw ProvenInfeasible()
+                            // if our lower bound is above the inherent upper bound, we will always
+                            // be pinned to the lower bound and can simplify to a fixed var.
+                            ClosedInterval.IvalRel.GUB -> return IntConstExpr(clb)
                         }
                     }
                 }
@@ -68,7 +82,7 @@ private constructor(
                 clip_ub?.let { cub ->
                     base_bounds.check_in_bounds(cub).let {
                         when (it) {
-                            ClosedInterval.IvalRel.LLB -> throw ProvenInfeasible()
+                            ClosedInterval.IvalRel.LLB -> return IntConstExpr(cub)
                             ClosedInterval.IvalRel.Contains ->
                                 if (cub < (base_bounds.ub ?: Int.MAX_VALUE)) cub else null
                             ClosedInterval.IvalRel.GUB -> null
@@ -77,7 +91,7 @@ private constructor(
                 }
             return when {
                 resolved_clip_lb == null && resolved_clip_ub == null -> x.reify()
-                else -> IntClip(x, resolved_clip_lb, resolved_clip_ub)
+                else -> "clip" { IntClip(x, resolved_clip_lb, resolved_clip_ub) }
             }
         }
     }

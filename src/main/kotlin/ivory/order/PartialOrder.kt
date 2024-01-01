@@ -3,7 +3,7 @@ package ivory.order
 interface PartialOrder<in T> {
 
     /** We leverage nullable types here and make incomparable <-> null */
-    infix fun  T.cmp(other: T): Rel?
+    infix fun T.cmp(other: T): Rel?
 
     companion object {
         context(PartialOrder<T>)

@@ -8,8 +8,10 @@ import ivory.order.PartialOrder.Companion.pgeq
 import ivory.order.PartialOrder.Companion.pleq
 import ivory.order.Rel
 import mdspan.ndindex
+import requiring
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.reflect.KClass
 
 interface BaseDim {
     val ndim: Int
@@ -22,17 +24,28 @@ interface BaseDim {
  * deep into the bone marrow of the other domain objects.
  */
 sealed class Dim<D : Dim<D>>(final override val ndim: Int) : BaseDim {
-    @Suppress("UNCHECKED_CAST") val vlat = VecLattice(this as D)
+    @Suppress("UNCHECKED_CAST", "LeakingThis") val vlat = VecLattice(this as D)
     val blat = BBLattice()
 }
 
-object D1 : Dim<D1>(1)
+inline fun <reified D : Dim<D>> KClass<D>.fix(): D {
+    return when (this) {
+        D1::class -> D1
+        D2::class -> D2
+        D3::class -> D3
+        D4::class -> D4
+        else -> error("unsupported dimension $this")
+    }
+        as D
+}
 
-object D2 : Dim<D2>(2)
+data object D1 : Dim<D1>(1)
 
-object D3 : Dim<D3>(3)
+data object D2 : Dim<D2>(2)
 
-object D4 : Dim<D4>(4)
+data object D3 : Dim<D3>(3)
+
+data object D4 : Dim<D4>(4)
 
 /**
  * A vector is a glorified List<Int> with some nice geometric operations.
@@ -55,8 +68,7 @@ class Vec<D : Dim<D>> private constructor(private val coords: List<Int>, val dim
 
     companion object {
         fun <D : Dim<D>> D.vec(coords: List<Int>): Vec<D> {
-            require(coords.size == ndim)
-            return Vec(coords, dim = this)
+            return Vec(coords requiring { it.size == ndim }, dim = this)
         }
 
         fun <D : Dim<D>> D.vec(vararg coords: Int): Vec<D> = Vec(coords.toList(), dim = this)

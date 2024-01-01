@@ -53,20 +53,19 @@ interface LPRenderable {
  * This method is very useful for testing and "editing" existing objects, but should be avoided
  * during routine tree construction */
 infix fun <T : LPRenderable, V> T.use(op: context(NodeCtx, T) () -> V): V =
-    // need the `with` form surrounding the invoke to make sure that if we have some other node in
-    // the context (as we do with decompose), its String.invoke won't take precedence over the Ctx
+// need the `with` form surrounding the invoke to make sure that if we have some other node in
+// the context (as we do with decompose), its String.invoke won't take precedence over the Ctx
     // invoke. This is the price of hipsterdom.
     with(node) { this { op(this, this@T) } }
 
 
-infix fun <T: LPRenderable> T.branch(op: context(NodeCtx) (T) -> Unit): T {
+infix fun <T : LPRenderable> T.branch(op: context(NodeCtx) (T) -> Unit): T {
     // need the `with` form surrounding the invoke to make sure that if we have some other node in
     // the context (as we do with decompose), its String.invoke won't take precedence over the Ctx
     // invoke. This is the price of hipsterdom.
     with(node) { this { op(this, this@T) } }
     return this
 }
-
 
 
 /**
@@ -82,9 +81,9 @@ open class NodeBoundRenderable(unsafe_node_override: LPNode? = null) : LPRendera
     class DuplicateNodeAssignmentException(node: LPNode) :
         IllegalStateException(
             "$node is unsuitable for a new renderable. " +
-                "It's either an invalid node, or has already been bound." +
-                "This probably means you passed the same node to multiple renderables." +
-                "You should use `node grow { ... }` or `node += ...` to split off new nodes."
+                    "It's either an invalid node, or has already been bound." +
+                    "This probably means you passed the same node to multiple renderables." +
+                    "You should use `node grow { ... }` or `node += ...` to split off new nodes."
         )
 
     init {

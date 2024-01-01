@@ -6,6 +6,7 @@ import grid_model.dimension.Vec
 import grid_model.shapes.RectD
 import ivory.order.BoundedLattice.Companion.join
 import ivory.order.BoundedLattice.Companion.meet
+import requiring
 
 fun interface BaseShape<D : Dim<D>> {
     fun compute_points(): Set<Vec<D>>
@@ -25,6 +26,13 @@ fun interface BaseShape<D : Dim<D>> {
  * bottom-"left" corner of the bounding box, where left is interpreted as toward zero.
  */
 abstract class Shape<D : Dim<D>>(val dim: D) : BaseShape<D> {
+
+    companion object {
+        fun <D : Dim<D>> empty(dim: D): Shape<D> =
+            object : Shape<D>(dim) {
+                override fun compute_points(): Set<Vec<D>> = setOf()
+            }
+    }
 
     abstract override fun compute_points(): Set<Vec<D>>
 
@@ -46,8 +54,7 @@ abstract class Shape<D : Dim<D>>(val dim: D) : BaseShape<D> {
     }
 
     fun translated(shift: Vec<D>): Shape<D> {
-        require(shift.size == dim.ndim)
-        return object : Shape<D>(dim) {
+        return object : Shape<D>(dim requiring { it.ndim == shift.size }) {
             override fun compute_points(): Set<Vec<D>> =
                 points.map { coords -> coords + shift }.toSet()
         }

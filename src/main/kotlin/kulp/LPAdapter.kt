@@ -1,5 +1,6 @@
 package kulp
 
+import kulp.adapters.LPSolver
 import kulp.variables.LPVar
 
 /**
@@ -10,8 +11,7 @@ import kulp.variables.LPVar
  * This lets us keep our LPProblem implementation backend-agnostic and use abstractions whose
  * implementation details do not intrude on the modelling layer.
  */
-context(Solver)
-abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: MipContext) {
+abstract class LPAdapter<Solver>(private val solver: Solver, val ctx: MipContext) : LPSolver {
 
     context(Solver)
     abstract fun consume_variable(variable: LPVar<*>)
@@ -25,32 +25,44 @@ abstract class LPAdapter<Solver, SolverParams>(val problem: LPProblem, val ctx: 
     abstract fun consume_objective(objective: LPAffExpr<Double>, sense: LPObjectiveSense)
 
     context(Solver)
-    fun init() {
-        val primitives = problem.node.render(ctx)
-        val already_consumed = mutableSetOf<LPPath>()
+    abstract fun execute_solver(): LPSolution
 
-        // first, consume all variables
-        val variables = primitives.values.filterIsInstance<LPVar<*>>()
-        for (variable in variables) {
-            if (variable.path !in already_consumed) {
-                consume_variable(variable)
-                already_consumed.add(variable.path)
-            }
-        }
-
-        // then, consume all constraints
-        val constraints = primitives.values.filterIsInstance<LPConstraint>()
-        for (constraint in constraints) {
-            if (constraint.path !in already_consumed) {
-                consume_constraint(constraint)
-                already_consumed.add(constraint.path)
-            }
-        }
-
-        val (obj, sense) = problem.get_objective()
-        consume_objective(obj.relax(), sense)
+    inner class SolutionExecutor(val solver: Solver) {
+        fun execute(): LPSolution = solver.run { execute_solver() }
     }
 
-    context(Solver)
-    abstract fun run_solver(params: SolverParams? = null): LPSolution
+    // often we want to prepare a solver and perhaps perform some manipulations on it before
+    // executing it. This lets us do that.
+    fun prepare(prob: LPProblem): SolutionExecutor {
+        solver.run {
+            val primitives = prob.node.render(ctx)
+            val already_consumed = mutableSetOf<LPPath>()
+
+            // first, consume all variables
+            val variables = primitives.values.filterIsInstance<LPVar<*>>()
+
+            for (variable in variables) {
+                if (variable.path !in already_consumed) {
+                    consume_variable(variable)
+                    already_consumed.add(variable.path)
+                }
+            }
+
+            // then, consume all constraints
+            val constraints = primitives.values.filterIsInstance<LPConstraint>()
+            for (constraint in constraints) {
+                if (constraint.path !in already_consumed) {
+                    consume_constraint(constraint)
+                    already_consumed.add(constraint.path)
+                }
+            }
+
+            val (obj, sense) = prob.get_objective()
+            consume_objective(obj.relax(), sense)
+
+            return SolutionExecutor(this)
+        }
+    }
+
+    override fun LPProblem.solve(): LPSolution = prepare(this).execute()
 }

@@ -21,9 +21,9 @@ interface NDSpan<out T> : List<T> {
 
     fun slice(vararg prefix: Int): NDSpan<T>
 
-    fun slice(vararg slice: SliceLike): NDSpan<T>
+    fun slice(vararg slice: Slice): NDSpan<T>
 
-    fun slice(slice: List<SliceLike>): NDSpan<T>
+    fun slice(slice: NDSlice): NDSpan<T>
 
     // shape manipulation
     fun squeeze(): NDSpan<T>

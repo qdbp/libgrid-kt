@@ -12,11 +12,20 @@ import kulp.LPPath
 import kulp.variables.LPVar
 import kotlin.reflect.KClass
 
+/**
+ * A wrapper of a numerical domain's algebraic and ordering operations.
+ *
+ * This is deeply embedded into LPAffExpr and lets us do "generic math" in <N : Number> contexts
+ * without needing to push repetitive implementations down to implementing classes.
+ */
 sealed class LPDomain<N : Number>(
     val klass: KClass<N>,
     val ring: Ring<N>,
     val order: TotalOrder<N>,
 ) {
+
+    companion object {
+    }
 
     val zero: N = ring.zero
 
@@ -49,6 +58,8 @@ sealed class LPDomain<N : Number>(
 
     fun min(a: N, b: N): N = order.run { a psort b }.first
 
+    // convenience extensions that let us do arithmetic on abstract "N" numbers directly in the
+    // context of a domain to avoid nasty `dom.ring.add.run { ... }` spam
     operator fun N.unaryMinus(): N = ring.add.run { -this@unaryMinus }
 
     operator fun N.plus(other: N): N = ring.run { this@N radd other }

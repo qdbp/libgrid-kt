@@ -1,15 +1,13 @@
 package test_grid.level_0
 
 import boolean_algebra.True
-import grid_model.BAGP
+import grid_model.BEGP
 import grid_model.Entity
-import grid_model.adapters.lp.LPGridAdapter
 import grid_model.dimension.D2
 import grid_model.dimension.Vec.Companion.vec
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kulp.LPSolutionStatus
 import test_kulp.ScipTester
+import test_kulp.assertOptimal
 
 /**
  * Technically, this is an edge case which might be, ironically, harder to get right than e.g. a
@@ -22,17 +20,13 @@ private object EmptyProblem : TestGridProblem<D2>(D2) {
 
     override fun get_entity_set(): Set<Entity<D2>> = setOf()
 
-    override fun generate_requirement_predicates(): BAGP = True
+    override fun generate_requirement_predicates(): BEGP = True
 
-    override fun get_valuation_predicates(): Map<BAGP, Double> = mapOf()
+    override fun get_valuation_predicates(): Map<BEGP, Double> = mapOf()
 }
 
 class TestP0Empty : ScipTester() {
 
     @Test
-    fun test_empty_problem() {
-        val adapter = LPGridAdapter(EmptyProblem)
-        val solution = solve(adapter.lp_prob)
-        assertEquals(LPSolutionStatus.Optimal, solution.status())
-    }
+    fun test_empty_problem() = EmptyProblem.lp.solve().run { assertOptimal() }
 }

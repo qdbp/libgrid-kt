@@ -3,7 +3,7 @@ package test_kulp.test_ril
 import kulp.LPObjective
 import kulp.LPObjectiveSense
 import kulp.lp_dot
-import kulp.transforms.ril.RIL
+import kulp.ril.RIL
 import kulp.variables.LPInteger
 import test_kulp.ScipTester
 import test_kulp.TestLPProblem
@@ -36,7 +36,7 @@ class TestRILSatCount : ScipTester() {
         val prob = SatCountRILProblem()
         with(prob) {
             node { vars.bind_each("pin") { it eq 0 } }
-            with(solve(prob)) {
+            with(prob.solve()) {
                 assertRilTrue(min_witness_0)
                 assertRilFalse(min_witness_1)
                 assertRilFalse(min_witness_2)
@@ -57,7 +57,7 @@ class TestRILSatCount : ScipTester() {
                 vars.take(1).bind_each("pin_true") { it eq 1 }
                 vars.drop(1).bind_each("pin_false") { it eq 0 }
             }
-            with(solve(prob)) {
+            with(prob.solve()) {
                 assertRilTrue(min_witness_0)
                 assertRilTrue(min_witness_1)
                 assertRilFalse(min_witness_2)
@@ -78,7 +78,7 @@ class TestRILSatCount : ScipTester() {
                 vars.take(2).bind_each("pin_true") { it eq 1 }
                 vars.drop(2).bind_each("pin_false") { it eq 0 }
             }
-            with(solve(prob)) {
+            with(prob.solve()) {
                 assertRilTrue(min_witness_0)
                 assertRilTrue(min_witness_1)
                 assertRilTrue(min_witness_2)
@@ -96,7 +96,7 @@ class TestRILSatCount : ScipTester() {
         val prob = SatCountRILProblem()
         with(prob) {
             node { vars.bind_each("pin") { it eq 1 } }
-            with(solve(prob)) {
+            with(prob.solve()) {
                 assertRilTrue(min_witness_0)
                 assertRilTrue(min_witness_1)
                 assertRilTrue(min_witness_2)
@@ -117,7 +117,7 @@ class TestRILSatCount : ScipTester() {
         with(prob) {
             node { "max_sat_pin" { RIL.max_sat(1, vars).is_ril_true } }
             // best solution = set last; zero first two
-            with(solve(prob)) { assertObjective(3.0) }
+            with(prob.solve()) { assertObjective(3.0) }
         }
 
         prob = SatCountRILProblem()
@@ -127,7 +127,7 @@ class TestRILSatCount : ScipTester() {
                 "max_sat_pin" { RIL.max_sat(2, vars).is_ril_true }
             }
             // best solution = set last two; zero first
-            with(solve(prob)) { assertObjective(5.0) }
+            with(prob.solve()) { assertObjective(5.0) }
         }
     }
 
@@ -139,7 +139,7 @@ class TestRILSatCount : ScipTester() {
                 vars.bind_each("pin") { it ge 1 }
                 "max_sat_pin" { RIL.max_sat(1, vars).is_ril_true }
             }
-            with(solve(prob)) { assertInfeasible() }
+            with(prob.solve()) { assertInfeasible() }
         }
     }
 
@@ -149,13 +149,13 @@ class TestRILSatCount : ScipTester() {
         with(prob) {
             node { "min_sat_pin" { RIL.min_sat(1, vars).is_ril_true } }
             // + 1 (pins cheapest) -2 -3
-            with(solve(prob)) { assertObjective(-4.0) }
+            with(prob.solve()) { assertObjective(-4.0) }
         }
 
         prob = SatCountRILProblem(minimize = true)
         with(prob) {
             node { "min_sat_pin" { RIL.min_sat(3, vars).is_ril_true } }
-            with(solve(prob)) { assertObjective(6.0) }
+            with(prob.solve()) { assertObjective(6.0) }
         }
     }
 
@@ -167,7 +167,7 @@ class TestRILSatCount : ScipTester() {
                 vars.bind_each("pin") { it le 0 }
                 "min_sat_pin" { RIL.min_sat(1, vars).is_ril_true }
             }
-            with(solve(prob)) { assertInfeasible() }
+            with(prob.solve()) { assertInfeasible() }
         }
     }
 }

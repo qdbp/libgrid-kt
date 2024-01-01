@@ -24,4 +24,15 @@ abstract class LPProblem private constructor(node: LPNode) : RootRenderable(node
     // and can just define their constituents as fields
     context(NodeCtx)
     override fun decompose(ctx: LPContext) {}
+
+    // KT-64635
+    // operator fun <T : LPRenderable> ((BindCtx).() -> T).provideDelegate(
+    //     thisRef: Any?,
+    //     prop: KProperty<*>
+    // ): ReadOnlyProperty<Any?, T> {
+    //     val out = node.bind(prop.name, this)
+    //     return ReadOnlyProperty { _, _ -> out }
+    // }
+
+    fun <T : LPRenderable> bind(op: (BindCtx).() -> T): LPNode.BDP<T> = node.bind(op)
 }

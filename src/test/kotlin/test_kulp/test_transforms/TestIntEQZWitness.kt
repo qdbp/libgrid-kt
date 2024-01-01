@@ -6,9 +6,9 @@ import kulp.LPObjectiveSense
 import kulp.LPSolutionStatus
 import kulp.transforms.IntEQZWitness
 import kulp.variables.LPInteger
-import org.junit.jupiter.api.Test
 import test_kulp.ScipTester
 import test_kulp.TestLPProblem
+import kotlin.test.Test
 
 private class ReifiedEqProblem(
     var lhs: LPAffExpr<Int>? = null,
@@ -44,7 +44,7 @@ class TestIntEQZWitness : ScipTester() {
         prob.mk_z()
         prob.objective = prob.lhs!! + prob.rhs!!
 
-        val solution = solve(prob)
+        val solution = prob.solve()
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(0.0, solution.value_of(prob.z!!))
@@ -64,7 +64,7 @@ class TestIntEQZWitness : ScipTester() {
         prob.objective = prob.lhs!! + prob.rhs!!
         prob.root().bind("force_equal") { z eq 1 }
 
-        val solution = solve(prob)
+        val solution = prob.solve()
 
         assertEquals(LPSolutionStatus.Infeasible, solution.status())
     }
@@ -81,7 +81,7 @@ class TestIntEQZWitness : ScipTester() {
         prob.objective = y - x
 
         prob.root().bind("force_equal") { prob.z!! eq 1 }
-        val solution = solve(prob)
+        val solution = prob.solve()
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(1.0, solution.value_of(prob.z!!))
@@ -104,7 +104,7 @@ class TestIntEQZWitness : ScipTester() {
 
         prob.root().bind("force_equal") { z eq 1 }
 
-        val solution = solve(prob)
+        val solution = prob.solve()
 
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(1.0, solution.value_of(z))

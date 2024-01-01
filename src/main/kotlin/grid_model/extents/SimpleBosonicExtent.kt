@@ -5,6 +5,7 @@ import grid_model.Shape
 import grid_model.Tile
 import grid_model.dimension.Dim
 import grid_model.dimension.Vec
+import grid_model.planes.Plane
 import grid_model.predicate.HasTile
 import grid_model.predicate.SinglePointCondition
 
@@ -16,6 +17,6 @@ data class SimpleBosonicExtent<D : Dim<D>>(val entity_name: String, val shape: S
 
     override fun get_active_tiles(): List<Tile> = listOf(avatar)
 
-    override fun get_point_demands(): Map<Vec<D>, SinglePointCondition> =
-        shape.points.associateWith { HasTile(avatar) }
+    override fun get_point_demands(plane: Plane): Map<Vec<D>, SinglePointCondition> =
+        shape.points.associateWith { HasTile(plane, avatar) }
 }

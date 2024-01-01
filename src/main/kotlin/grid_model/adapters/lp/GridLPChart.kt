@@ -1,15 +1,11 @@
 package grid_model.adapters.lp
 
-import grid_model.Entity
-import grid_model.PlaneTileChart
-import grid_model.Tile
-import kulp.LPAffExpr
-import kulp.LPBoundedExpr
+import grid_model.GridIndex
 
 // TODO these are somewhat primitive stubs, need to work through a few case studies to see what's
 //  needed and what's easiest to work with
 /**
- * The Grid <-> LP information clearinghouse.
+ * The Grid -> LP information clearinghouse.
  *
  * The Chart carries exactly the information needed to map the underlying grid layout to concrete
  * variables that can be set to true and false by an LP solver. It has no notion of the problem's
@@ -21,21 +17,9 @@ import kulp.LPBoundedExpr
  * Chart, which maps out-of-range references in the algebra to appropriate LP expressions.
  */
 data class GridLPChart(
-    val entities: LPEntityChart,
-    val ptc: PlaneTileChart,
+    val index: GridIndex,
+    val lpec: LPEntityChart,
     val lptc: LPTileChart,
+    // TODO potential chart
+    // TODO flow chart
 )
-
-data class LPEntityChart(val entity_map: Map<List<Int>, Map<Entity<*>, LPBoundedExpr<Int>>>) {
-    operator fun get(ix: List<Int>, entity: Entity<*>): LPBoundedExpr<Int> {
-        return entity_map[ix]!![entity]!!.also { require(it.lb == 0 && it.ub == 1) }
-    }
-}
-
-fun interface LPTileChart {
-    operator fun get(grid_ndix: List<Int>, tile: Tile): LPBoundedExpr<Int>
-}
-
-// TODO potential chart
-
-// TODO flow chart

@@ -51,22 +51,6 @@ private constructor(
         fun <T> full_by(shape: List<Int>, init: (List<Int>) -> T): NDSpanImpl<T> =
             NDSpanImpl(ndindex(shape).map(init), shape)
 
-        /**
-         * Returns the n-dimensional index corresponding to the given flat index and shape.
-         *
-         * Assumes default C-style strides.
-         */
-        fun get_ndix(flat_ix: Int, shape: List<Int>): List<Int> {
-            require(flat_ix in 0 until shape.prod())
-            val out = mutableListOf<Int>()
-            var ix = flat_ix
-            for (s in shape.reversed()) {
-                out.add(ix % s)
-                ix /= s
-            }
-            return out.reversed()
-        }
-
         fun subspace_complement(shape: List<Int>, axes: List<Int>): List<Int> =
             shape.indices.mapNotNull { if (it in axes) null else shape[it] }
 
@@ -84,7 +68,7 @@ private constructor(
     init {
         require(strides.size == shape.size)
         require(data.size == shape.prod())
-        require(shape.all { it > 0 })
+        require(shape.all { it >= 0 })
     }
 
     // validators
@@ -115,13 +99,30 @@ private constructor(
 
     override operator fun get(indices: List<Int>): T = data[get_offset(indices)]
 
+    operator fun get(point: NDPoint): T = data[get_offset(point.slice.map { it.index })]
+
     override fun slice(vararg prefix: Int): NDSpanImpl<T> {
         require(prefix.size <= shape.size)
         val slice = prefix.map { IDX(it) } + List(shape.size - prefix.size) { ALL }
         return slice(*slice.toTypedArray())
     }
 
-    override fun slice(vararg slice: SliceLike): NDSpanImpl<T> {
+    override fun slice(vararg slice: Slice): NDSpanImpl<T> = slice(ProdIX(*slice))
+
+    override fun slice(slice: NDSlice): NDSpanImpl<T> {
+        when (slice) {
+            is ProdIX -> return slice_prod(slice)
+            is SumIX -> {
+                val out = mutableListOf<T>()
+                for (point in slice.selector) {
+                    out.add(this[point])
+                }
+                return NDSpanImpl(out, slice.selector.shape)
+            }
+        }
+    }
+
+    private fun slice_prod(slice: List<Slice>): NDSpanImpl<T> {
         val new_shape = mutableListOf<Int>()
         for ((i, s) in shape.withIndex()) {
             when (val index = slice[i]) {
@@ -156,8 +157,6 @@ private constructor(
 
         return NDSpanImpl(new_data, new_shape)
     }
-
-    override fun slice(slice: List<SliceLike>): NDSpanImpl<T> = slice(*slice.toTypedArray())
 
     // shape manipulation
     override fun squeeze(): NDSpanImpl<T> {
@@ -198,7 +197,7 @@ private constructor(
 
         for (ndix in ndindex(new_shape_expanded)) {
             val slice = ndix.mapIndexed { dim, out_ix -> if (dim in subspace) ALL else IDX(out_ix) }
-            new_data += op(ndix.filterIndexed { ix, _ -> ix !in subspace }, this.slice(slice))
+            new_data += op(ndix.filterIndexed { ix, _ -> ix !in subspace }, this.slice_prod(slice))
         }
         return NDSpanImpl(new_data, subspace_complement(shape, subspace))
     }
@@ -317,4 +316,3 @@ private constructor(
 
 infix fun <T> Iterable<T>.reshape(shape: List<Int>): NDSpanImpl<T> = NDSpanImpl(this, shape)
 
-fun <T> Iterable<T>.reshape(vararg shape: Int): NDSpanImpl<T> = this reshape shape.toList()

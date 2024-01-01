@@ -9,7 +9,7 @@ import kulp.expressions.RealAffExpr
 import kulp.variables.LPReal
 import kulp.variables.LPVar
 
-object LPRealDomain :
+data object LPRealDomain :
     LPDomain<Double>(
         klass = Double::class,
         ring = DoubleRing,

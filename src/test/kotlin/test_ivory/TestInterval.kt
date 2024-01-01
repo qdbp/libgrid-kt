@@ -5,7 +5,7 @@ import ivory.interval.ClosedInterval
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-object TestClosedInterval {
+class TestClosedInterval {
 
     @Test
     fun test_basic() {

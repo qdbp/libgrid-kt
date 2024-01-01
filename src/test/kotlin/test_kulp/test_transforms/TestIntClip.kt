@@ -30,15 +30,15 @@ class TestIntClip : ScipTester() {
     @Test
     fun test_clip_elision_general() {
         val root = LPNode.new_root()
-        val z = root { "z" { LPInteger(-10, 10) } }
+        val z = root branch { "z" { LPInteger(-10, 10) } }
 
-        var zc = root { "zc1" { z.int_clip(-5, 5) } }
+        var zc = root branch { z.int_clip(-5, 5) }
         assertIs<IntClip>(zc)
         assertIs<LPBinary>(zc.z_lb)
         assertIs<LPBinary>(zc.z_ub)
 
         // these bounds should be elided since they are redundant
-        zc = root { "zc2" { z.int_clip(-15, 15) } }
+        zc = root branch { z.int_clip(-15, 15) }
         assert(zc === z)
 
         // test elision on sum expressions
@@ -46,23 +46,23 @@ class TestIntClip : ScipTester() {
 
         // should have inherent bound of [10,null]
         val zw = z + w
-        zc = root { "zc3" { zw.int_clip(20, 30) } }
+        zc = root branch { zw.int_clip(20, 30) }
         assertIs<IntClip>(zc)
         assertIs<LPBinary>(zc.z_lb)
         assertIs<LPBinary>(zc.z_ub)
 
-        zc = root { "zc4" { zw.int_clip(10, 30) } }
+        zc = root branch { zw.int_clip(10, 30) }
         assertIs<IntClip>(zc)
         // equal to inherent lower bound -- skip
         assertNull(zc.z_lb)
         assertIs<LPBinary>(zc.z_ub)
 
-        zc = root { "zc5" { zw.int_clip(20, null) } }
+        zc = root branch { zw.int_clip(20, null) }
         assertIs<IntClip>(zc)
         assertIs<LPBinary>(zc.z_lb)
         assertNull(zc.z_ub)
 
-        zc = root { "zc6" { zw.int_clip(10, null) } }
+        zc = root branch { zw.int_clip(10, null) }
         // clip instance skipped, but expression must be reified to integer
         assertIs<LPInteger>(zc)
         assertEquals(10, zc.lb)
@@ -75,26 +75,27 @@ class TestIntClip : ScipTester() {
 
         // bool clip of bool must be elided or we'll drown in aux vars
         val z = root { "z" { LPBinary() } }
-        var zc = root { "zc1" { z.bool_clip() } }
+        var zc = root branch { z.bool_clip() }
         assert(zc === z)
 
         // bool clip must be idempotent
         val x = root { "x" { LPInteger(-10, 10) } }
-        zc = root { "zc2" { x.bool_clip() } }
+        zc = root branch { x.bool_clip() }
         assertIs<IntClip>(zc)
         assertIs<LPBinary>(zc.z_lb)
         assertIs<LPBinary>(zc.z_ub)
 
-        val zc_again = root { "zc3" { zc.bool_clip() } }
+        val zc_again = root branch { zc.bool_clip() }
         // need to test nodes since reify for IntClip doesn't return the IntClip object itself
         // but rather the internal LPInteger wrapping its node.
+        assertIs<LPInteger>(zc_again)
         assert(zc_again.node === zc.node)
     }
 
     @Test
     fun testLbOnly() {
         val prob = IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -10, ub = null)
-        val solution = solve(prob)
+        val solution = prob.solve()
         prob.node.dump_full_node_dfs()
         assertNull(prob.y.z_ub)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
@@ -106,7 +107,7 @@ class TestIntClip : ScipTester() {
     fun testLbOnlyForcePinnedNotBound() {
         val prob =
             IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -10, ub = null, pin_x = 7)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertNull(prob.y.z_ub)
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(0.0, solution.value_of(prob.y.z_lb!!))
@@ -122,7 +123,7 @@ class TestIntClip : ScipTester() {
                 ub = null,
                 pin_x = -15
             )
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertNull(prob.y.z_ub)
         assertEquals(1.0, solution.value_of(prob.y.z_lb!!))
         assertEquals(-15.0, solution.value_of(prob.x))
@@ -134,7 +135,7 @@ class TestIntClip : ScipTester() {
     @Test
     fun testUbOnly() {
         val prob = IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = null, ub = 10)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(solution.status(), LPSolutionStatus.Optimal)
         assertEquals(10.0, solution.objective_value())
     }
@@ -143,7 +144,7 @@ class TestIntClip : ScipTester() {
     fun testUbOnlyForcePinnedBound() {
         val prob =
             IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = null, ub = 10, pin_x = 20)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assert(solution.status() == LPSolutionStatus.Optimal)
         assertNull(prob.y.z_lb)
         assertEquals(1.0, solution.value_of(prob.y.z_ub!!.node))
@@ -154,7 +155,7 @@ class TestIntClip : ScipTester() {
     fun testUbOnlyForcePinnedNotBound() {
         val prob =
             IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = null, ub = 10, pin_x = 7)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assert(solution.status() == LPSolutionStatus.Optimal)
         assertNull(prob.y.z_lb)
         assertEquals(0.0, solution.value_of(prob.y.z_ub!!.node))
@@ -164,7 +165,7 @@ class TestIntClip : ScipTester() {
     @Test
     fun testUbLBMaximize() {
         val prob = IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = -10, ub = 10)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(0.0, solution.value_of(prob.y.z_lb!!.node))
         assertEquals(1.0, solution.value_of(prob.y.z_ub!!.node))
@@ -174,7 +175,7 @@ class TestIntClip : ScipTester() {
     @Test
     fun testUbLBMinimize() {
         val prob = IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -10, ub = 10)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(1.0, solution.value_of(prob.y.z_lb!!.node))
         assertEquals(0.0, solution.value_of(prob.y.z_ub!!.node))
@@ -185,7 +186,7 @@ class TestIntClip : ScipTester() {
     fun testUbLBMinimizeForcePinned() {
         val prob =
             IntClipTestProblem({ it to LPObjectiveSense.Minimize }, lb = -5, ub = 5, pin_x = -20)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(solution.value_of(prob.y.z_lb!!.node), 1.0)
         assertEquals(solution.value_of(prob.y.z_ub!!.node), 0.0)
@@ -196,7 +197,7 @@ class TestIntClip : ScipTester() {
     fun testUbLBMaximizeForcePinned() {
         val prob =
             IntClipTestProblem({ it to LPObjectiveSense.Maximize }, lb = -5, ub = 5, pin_x = -20)
-        val solution = solve(prob)
+        val solution = prob.solve()
         assertEquals(LPSolutionStatus.Optimal, solution.status())
         assertEquals(solution.value_of(prob.y.z_lb!!.node), 1.0)
         assertEquals(solution.value_of(prob.y.z_ub!!.node), 0.0)
