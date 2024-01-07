@@ -1,5 +1,6 @@
 package kulp
 
+import kulp.variables.LPBinary
 import kulp.variables.LPVar
 import kulp.variables.LiftedLPVar
 import mdspan.NDSpan
@@ -153,13 +154,19 @@ private constructor(val name: String, private val parent: LPNode?, private var d
         // we have hidden the node.
         fun <T : LPRenderable> bind(name: String, op: (BindCtx).() -> T): T = node.bind(name, op)
 
+        infix fun <T : LPRenderable> bind(op: (BindCtx).() -> T) = Private.run { BDP(node, op) }
+
         infix fun <T> branch(op: (NodeCtx).() -> T): T = node.branch(op)
 
         fun <T> branch(name: String, op: (NodeCtx).() -> T): T = node.branch(name, op)
 
+        fun String.new_binary(): LPBinary = node.bind(this) { LPBinary() }
+
         // some infix hipster sugar
         operator fun <T : LPRenderable> String.invoke(op: (BindCtx).() -> T): T =
             node.bind(this, op)
+
+        fun List<Int>.new_binary(): LPBinary = node.bind(lp_name) { LPBinary() }
 
         operator fun <T : LPRenderable> List<Int>.invoke(op: (BindCtx).() -> T): T =
             node.bind(lp_name, op)

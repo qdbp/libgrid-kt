@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 infix fun <T> List<T>.drop_at(ix: Int): List<T> {
     return this.slice(0 ..< ix) + this.slice(ix + 1 ..< this.size)
 }
@@ -37,14 +39,14 @@ fun <T> List<T?>.nullable_fold(op: (T, T) -> T?): T? {
 
 // TODO spin these cutesies off to a separate "words of power" library or something
 /** I love extension functions. */
-infix fun <T> Any?.then(it: T): T = it
+inline infix fun <T> Any?.then(it: T): T = it
 
-infix fun <T> T.after(that: Any?): T = this
+inline infix fun <T> T.after(that: Any?): T = this
 
-infix fun <T> T.requiring(v: Boolean) = require(v) then this
+inline infix fun <T> T.requiring(v: Boolean) = require(v) then this
 
-infix fun <T> T.requiring(op: (T) -> Boolean) = require(op(this)) then this
+inline infix fun <T> T.requiring(op: (T) -> Boolean) = require(op(this)) then this
 
-infix fun <T> T.granted(v: Boolean): T? = if (v) this else null
+inline infix fun <T> T.granted(v: Boolean): T? = if (v) this else null
 
-infix fun <T> T.granted(op: (T) -> Boolean): T? = if (op(this)) this else null
+inline infix fun <T> T.granted(op: (T) -> Boolean): T? = if (op(this)) this else null

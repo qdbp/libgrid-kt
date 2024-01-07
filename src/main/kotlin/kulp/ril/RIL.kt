@@ -36,10 +36,9 @@ object RIL {
      */
     context(NodeCtx)
     fun equiv(p: LPAffExpr<Int>, q: LPAffExpr<Int>): LPAffExpr<Int> {
-        // TODO more efficient implementation
-        val pq = implies(p, q)
-        val qp = implies(q, p)
-        return and(pq, qp)
+        val p_clip = branch("p") { p.bool_clip() }
+        val q_clip = branch("q") { q.bool_clip() }
+        return "eq" { IntEQZWitness(p_clip, q_clip) }
     }
 
     context(NodeCtx)

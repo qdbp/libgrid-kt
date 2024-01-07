@@ -1,6 +1,7 @@
 package grid_model
 
-import grid_model.planes.Plane
+import grid_model.plane.Plane
+import grid_model.tiles.Tile
 
 interface GridSolution {
 

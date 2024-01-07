@@ -3,8 +3,8 @@ package grid_model.adapters.lp
 import grid_model.Entity
 import grid_model.GridProblem
 import grid_model.GridSolution
-import grid_model.Tile
-import grid_model.planes.Plane
+import grid_model.tiles.Tile
+import grid_model.plane.Plane
 import kulp.LPProblem
 import kulp.LPSolution
 
@@ -25,9 +25,13 @@ abstract class GridLPProblem : LPProblem() {
             override val problem: GridProblem<*> = parent
 
             override fun get_entities(ix: List<Int>): Collection<Entity<*>> =
-                chart.index.all_entities().filter { sol.value_of(chart.lpec[ix, it]) == 1.0 }
+                chart.index.all_entities().filter {
+                    sol.value_of(chart.lpec[ix, it].to_lp()) == 1.0
+                }
 
             override fun get_tiles(ix: List<Int>, plane: Plane): Collection<Tile> =
-                chart.index.all_tiles.filter { sol.value_of(chart.lptc[ix, plane, it]) == 1.0 }
+                chart.index.tiles_of(plane).filter {
+                    sol.value_of(chart.lptc[ix, plane, it].to_lp()) == 1.0
+                }
         }
 }

@@ -1,5 +1,7 @@
 package grid_model
 
+import grid_model.tiles.Tile
+
 /**
  * Connected-Component Potential.
  *

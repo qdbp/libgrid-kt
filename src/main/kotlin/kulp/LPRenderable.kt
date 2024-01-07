@@ -73,10 +73,10 @@ infix fun <T : LPRenderable> T.branch(op: context(NodeCtx) (T) -> Unit): T {
  *
  * This is the final stop of the [LPNode.BindCtx].
  */
-context(BindCtx)
-open class NodeBoundRenderable(unsafe_node_override: LPNode? = null) : LPRenderable {
-
-    final override val node: LPNode = unsafe_node_override ?: take()
+// due to various bugs with Kotlin with respect to using fields/methods of context objects
+// in class constructors, we sometimes need to call `take()` in subclasses. For this reason the base
+// class needs to handle both having a node passed (optionally), and taking a new node.
+open class NodeBoundRenderable(final override val node: LPNode) : LPRenderable {
 
     class DuplicateNodeAssignmentException(node: LPNode) :
         IllegalStateException(

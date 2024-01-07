@@ -9,5 +9,4 @@ package kulp
  * terms. They are considered primitive, and their owning objects are responsible for rendering
  * their terms.
  */
-context(BindCtx)
-abstract class LPConstraint : NodeBoundRenderable()
+abstract class LPConstraint(node: LPNode) : NodeBoundRenderable(node)

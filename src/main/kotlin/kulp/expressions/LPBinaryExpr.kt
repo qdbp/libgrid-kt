@@ -9,7 +9,7 @@ import kulp.variables.LPBinary
 import kulp.variables.LiftedLPVar
 
 /**
- * Wrapper union type over LP integer expression that take values of either zero or one.
+ * Wrapper union type over LP integer expressions that take values of either zero or one.
  *
  * This is kind of ugly, but lets us statically enforce [0, 1] bounds in many places where otherwise
  * we'd need to dynamically check (aka hope and pray) that more general expressions are not being

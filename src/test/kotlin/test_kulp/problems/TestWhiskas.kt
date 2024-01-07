@@ -1,12 +1,12 @@
 package test_kulp.problems
 
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kulp.*
 import kulp.constraints.LP_BND
 import kulp.variables.LPNonnegativeReal
 import test_kulp.ScipTester
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 // implementing the example from pulp at
 // https://coin-or.github.io/pulp/CaseStudies/a_blending_problem.html
@@ -64,7 +64,7 @@ private object WhiskasProblem : LPProblem() {
         )
 
     val nutrient_vars =
-        prices.keys.associateWith { nutrient -> node.bind(nutrient, ::LPNonnegativeReal) }
+        prices.keys.associateWith { nutrient -> node.bind(nutrient) { LPNonnegativeReal() } }
 
     private val max_nutrients = mapOf("fibre" to 2.00, "salt" to 0.40)
     private val min_nutrients = mapOf("protein" to 8.00, "fat" to 6.00)

@@ -74,7 +74,7 @@ class TestIntClip : ScipTester() {
         val root = LPNode.new_root()
 
         // bool clip of bool must be elided or we'll drown in aux vars
-        val z = root { "z" { LPBinary() } }
+        val z = root { "z".new_binary() }
         var zc = root branch { z.bool_clip() }
         assert(zc === z)
 

@@ -1,6 +1,7 @@
 package grid_model
 
-import grid_model.planes.Plane
+import grid_model.plane.Plane
+import grid_model.tiles.Tile
 
 /**
  * The index collates a complete inventory of all planes, tiles, entities, or other objects.
@@ -15,6 +16,13 @@ interface GridIndex {
 
     // need list here because the order matters and must be fixed
     fun tiles_of(plane: Plane): List<Tile>
+
+    /**
+     * In a grid problem, each tile must belong to at most one plane. However, this plane is not an
+     * intrinsic property of the Tile, and so the binding is finalized "late", at the time of index
+     * creation.
+     */
+    fun plane_of(tile: Tile): Plane
 
     val all_tiles: Set<Tile>
         get() = all_planes().flatMap { tiles_of(it) }.toSet()

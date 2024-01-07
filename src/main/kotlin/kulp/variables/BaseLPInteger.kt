@@ -1,17 +1,14 @@
 package kulp.variables
 
-import kulp.BindCtx
 import kulp.LPAffExpr
+import kulp.LPNode
 import kulp.NodeBoundRenderable
 import kulp.domains.LPDomain
 import kulp.domains.LPIntegralDomain
 import kulp.expressions.IntAffExpr
 
 // base class for variable-like integers
-context(BindCtx)
-abstract class BaseLPInteger :
-    LPVar<Int>,
-    LPAffExpr<Int> by IntAffExpr(mapOf(unsafe_path_of_new_node to 1), 0),
-    NodeBoundRenderable() {
+abstract class BaseLPInteger(node: LPNode) :
+    LPVar<Int>, LPAffExpr<Int> by IntAffExpr(mapOf(node.path to 1), 0), NodeBoundRenderable(node) {
     final override val dom: LPDomain<Int> = LPIntegralDomain
 }

@@ -1,8 +1,8 @@
 package kulp.transforms
 
 import kulp.*
+import kulp.expressions.gt
 import kulp.expressions.lt
-import kulp.variables.LPBinary
 import kulp.variables.LPVar
 
 // TODO can we reify constraints in a generic way?
@@ -37,15 +37,15 @@ class IntEQZWitness private constructor(self: LPVar<Int>, val x: LPAffExpr<Int>)
         val M = ctx.intM
         // case x < 0
         val zn =
-            "z_dlz"(::LPBinary).branch {
+            "z_dlz".new_binary().branch {
                 // z == 1 if x < 0: -Mz       <= x
                 "bind_1" { -M * it le x }
                 // z == 0 if x >= 0:  M(1 - z)  > x
-                "bind_0" { M * !it ge x }
+                "bind_0" { M * !it gt x }
             }
         // case x >= 0
         val zp =
-            "z_dgz"(::LPBinary).branch {
+            "z_dgz".new_binary().branch {
                 // z == 1 if x >  0:  Mz        >= x
                 "bind_1" { M * it ge x }
                 // z == 0 if x <= 0: -M(1 - z)  < x

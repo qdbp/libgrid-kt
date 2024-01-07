@@ -6,6 +6,8 @@ import boolean_algebra.BooleanExpr.Companion.pred
 import ivory.functor.fmap
 import kotlin.reflect.KClass
 
+typealias BEReducer<T> = (List<BooleanExpr<T>>) -> BooleanExpr<T>
+
 // bind = flatten . fmap, but we use the kotlin term flatMap
 // this should be used for partial evaluation/assignment.
 fun <T> BooleanExpr<T>.flatMap(assign: (T) -> BooleanExpr<T>?): BooleanExpr<T> =
@@ -132,7 +134,7 @@ sealed class BooleanExpr<out T>(protected val terms: List<BooleanExpr<T>>) {
                 is Or<*> -> or(new_substructure)
                 is Xor<*> -> xor(new_substructure)
                 is Implies<*> -> implies(new_substructure[0], new_substructure[1])
-                is Eq<*> -> eq(new_substructure[0], new_substructure[1])
+                is Eq<*> -> equiv(new_substructure[0], new_substructure[1])
                 is SatCount<*> -> sat_count(new_substructure, expr.min_sat, expr.max_sat)
                 else -> throw RuntimeException("unreachable")
             }
@@ -229,7 +231,7 @@ sealed class BooleanExpr<out T>(protected val terms: List<BooleanExpr<T>>) {
 
         fun <T> implies(x: T, y: T): BooleanExpr<T> = implies(pred(x), pred(y))
 
-        fun <T> eq(x: BooleanExpr<T>, y: BooleanExpr<T>): BooleanExpr<T> {
+        fun <T> equiv(x: BooleanExpr<T>, y: BooleanExpr<T>): BooleanExpr<T> {
             return when {
                 x is False && y is False -> True
                 x is True && y is True -> True
@@ -240,6 +242,8 @@ sealed class BooleanExpr<out T>(protected val terms: List<BooleanExpr<T>>) {
                 else -> Private.run { Eq(x, y) }
             }
         }
+
+        fun <T> equiv(t: T, y: T): BooleanExpr<T> = equiv(pred(t), pred(y))
 
         private fun <T> sat_count_handle_trivial(
             min_sat: Int,

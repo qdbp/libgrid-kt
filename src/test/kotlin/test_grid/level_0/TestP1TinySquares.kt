@@ -3,11 +3,11 @@ package test_grid.level_0
 import boolean_algebra.BooleanExpr.Companion.and
 import grid_model.BEGP
 import grid_model.Entity
-import grid_model.dimension.D2
-import grid_model.dimension.Vec.Companion.vec
 import grid_model.entity
-import grid_model.planes.Onto
-import grid_model.shapes.RectD.Companion.rect
+import grid_model.geom.D2
+import grid_model.geom.Shape.Companion.rect
+import grid_model.geom.ones
+import grid_model.plane.Onto
 import test_kulp.ScipTester
 import test_kulp.assertInfeasible
 import test_kulp.assertObjective
@@ -22,10 +22,16 @@ import kotlin.test.assertEquals
 private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x1: Boolean) :
     TestGridProblem<D2>(D2) {
 
-    val Sq1x1 = entity(D2, "Sq1x1") { Onto { rect(1, 1).fermi } }
-    val Sq2x1 = entity(D2, "Sq2x2") { Onto { rect(2, 1).fermi } }
+    val Sq1x1 = entity(D2, "Sq1x1") { Onto { onto_taut() } }
+    val Sq2x1 =
+        entity(D2, "Sq2x2") {
+            Onto {
+                onto_push()
+                shape = rect(2, 1)
+            }
+        }
 
-    override val bounds = dim.vec(size - 1, size - 1).to_origin_bb()
+    override val arena = dim.ones(size)
 
     override fun get_entity_set(): Set<Entity<D2>> {
         val out = mutableSetOf<Entity<D2>>()
@@ -34,12 +40,12 @@ private data class P1Problem(val size: Int, val do_1x1: Boolean, val do_2x1: Boo
         return out
     }
 
-    val static_conditions: MutableList<BEGP> = mutableListOf()
+    val static_conditions: MutableList<BEGP<D2>> = mutableListOf()
 
-    override fun generate_requirement_predicates(): BEGP = and(static_conditions)
+    override fun generate_requirement_predicates() = and(static_conditions)
 
-    override fun get_valuation_predicates(): Map<BEGP, Double> {
-        val out = mutableMapOf<BEGP, Double>()
+    override fun get_valuation_predicates(): Map<BEGP<D2>, Double> {
+        val out = mutableMapOf<BEGP<D2>, Double>()
         if (do_1x1) out += val_entity_count(Sq1x1, 1.0)
         if (do_2x1) out += val_entity_count(Sq2x1, 3.0)
         return out
@@ -53,7 +59,14 @@ class TestP1TinySquares : ScipTester() {
         val gp = P1Problem(1, do_1x1 = true, do_2x1 = false)
         assertEquals(1, gp.bounds.size)
         // one 1x1 square
-        gp.lp.solve().run { assertObjective(1.0) }
+        gp.lp.run {
+            val lp_sol = solve().apply { assertObjective(1.0) }
+            val g_sol = parse_solution(lp_sol)
+            gp.bounds.forEach {
+                println("ix: $it -> ${g_sol.get_entities(it)} -> ${g_sol.get_tiles(it, Onto)}")
+            }
+        }
+        // gp.lp.solve().run { assertObjective(1.0) }
     }
 
     @Test
@@ -78,7 +91,16 @@ class TestP1TinySquares : ScipTester() {
     fun test_2x2_sq2_only() {
         val gp = P1Problem(2, do_1x1 = false, do_2x1 = true)
         assertEquals(4, gp.bounds.size)
-        gp.lp.solve().run { assertObjective(6.0) }
+        gp.lp.run {
+            val lp_sol = solve()
+            val g_sol = parse_solution(lp_sol)
+            println(gp.sat_algebra)
+            gp.bounds.forEach {
+                println("ix: $it -> ${g_sol.get_entities(it)} ->  ${g_sol.get_tiles(it, Onto)}")
+            }
+            lp_sol.run { assertObjective(6.0) }
+        }
+        // gp.lp.solve().run { assertObjective(6.0) }
     }
 
     @Test

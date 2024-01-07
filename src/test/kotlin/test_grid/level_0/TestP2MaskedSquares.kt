@@ -3,18 +3,17 @@ package test_grid.level_0
 import boolean_algebra.BooleanExpr
 import grid_model.BEGP
 import grid_model.Entity
-import grid_model.Shape
-import grid_model.dimension.D2
-import grid_model.dimension.Vec.Companion.vec
 import grid_model.entity
-import grid_model.planes.Onto
-import grid_model.planes.Plane
-import grid_model.shapes.FreeShape.Companion.free
-import grid_model.shapes.RectD
+import grid_model.geom.D2
+import grid_model.geom.Shape
+import grid_model.geom.Shape.Companion.rect
+import grid_model.geom.ones
+import grid_model.geom.to_vec
+import grid_model.plane.Onto
+import grid_model.plane.Plane
 import range
 import test_kulp.ScipTester
 import test_kulp.assertObjective
-import then
 import times
 import kotlin.test.Test
 
@@ -24,23 +23,23 @@ private data class P2Problem(
     val mask_onto: List<Pair<Int, Int>> = listOf()
 ) : TestGridProblem<D2>(D2) {
 
-    val Sq2x2 = entity(D2, "Sq2x2") { Onto { RectD.rect(2, 2).fermi } }
+    val Sq2x2 = entity(D2, "Sq2x2") { Onto { shape = rect(2, 2) } }
 
     // 10x10 grid
-    override val bounds = dim.vec(9, 9).to_origin_bb()
+    override val arena = dim.ones(10)
 
     override fun get_entity_set(): Set<Entity<D2>> = setOf(Sq2x2)
 
-    val static_conditions: MutableList<BEGP> = mutableListOf()
+    val static_conditions: MutableList<BEGP<D2>> = mutableListOf()
 
-    override fun generate_requirement_predicates(): BEGP = BooleanExpr.and(static_conditions)
+    override fun generate_requirement_predicates(): BEGP<D2> = BooleanExpr.and(static_conditions)
 
-    override fun get_valuation_predicates(): Map<BEGP, Double> = val_entity_count(Sq2x2, 1.0)
+    override fun get_valuation_predicates(): Map<BEGP<D2>, Double> = val_entity_count(Sq2x2, 1.0)
 
-    override fun generate_entity_mask(): Shape<D2> = free(mask_entities.map { it.toList() })
+    override fun get_entity_mask() = mapOf(Sq2x2 to Shape(mask_entities.map { it.to_vec() }, D2))
 
-    override fun generate_plane_mask(plane: Plane): Shape<D2> =
-        require(plane is Onto) then free(mask_onto.map { it.toList() })
+    override fun generate_tile_mask(): Map<Plane, Shape<D2>> =
+        mapOf(Onto to Shape(mask_onto.map { it.to_vec() }, D2))
 }
 
 class TestP2MaskedSquares : ScipTester() {

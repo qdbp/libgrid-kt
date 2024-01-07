@@ -1,10 +1,8 @@
 package test_kulp
 
-import kulp.LPNode
-import kulp.LPProblem
-import kulp.LPSolution
-import kulp.LPSolutionStatus
+import kulp.*
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 abstract class TestLPProblem : LPProblem() {
@@ -40,4 +38,25 @@ fun assertObjectiveAtMost(target: Double) {
     assertOptimal()
     val obj = objective_value()
     assertTrue(obj <= target, "expected objective <= $target; got $obj")
+}
+
+context(TestLPProblem, LPSolution)
+fun assertValue(target: Double, rnd: LPAffExpr<*>) {
+    val value = value_of(rnd)
+    assertNotNull(value, "expected $rnd ~ $target; got null")
+    assertEquals(target, value, 1e-4, "expected $node ~ $target; got $value")
+}
+
+context(TestLPProblem, LPSolution)
+fun assertValueGe(target: Double, rnd: LPAffExpr<*>) {
+    val value = value_of(rnd)
+    assertNotNull(value, "expected $rnd >= $target; got null")
+    assertTrue(value >= target, "expected $rnd >= $target; got $value")
+}
+
+context(TestLPProblem, LPSolution)
+fun assertValueLe(target: Double, rnd: LPAffExpr<*>) {
+    val value = value_of(rnd)
+    assertNotNull(value, "expected $rnd <= $target; got null")
+    assertTrue(value <= target, "expected $rnd <= $target; got $value")
 }

@@ -7,10 +7,12 @@ interface PartialOrder<in T> {
 
     companion object {
         context(PartialOrder<T>)
-        infix fun <T, A : T, B : T> A.pleq(other: B): Boolean = this cmp other == Rel.LEQ
+        infix fun <T, A : T, B : T> A.pleq(other: B): Boolean =
+            this == other || this cmp other == Rel.LEQ
 
         context(PartialOrder<T>)
-        infix fun <T, A : T, B : T> A.pgeq(other: B): Boolean = this cmp other == Rel.GEQ
+        infix fun <T, A : T, B : T> A.pgeq(other: B): Boolean =
+            this == other || this cmp other == Rel.GEQ
 
         // we do not use ==, since we allow two objects to be logically equal with respect to a
         // given order independently of JVM equality

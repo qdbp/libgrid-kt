@@ -8,8 +8,19 @@ import kulp.*
  * The builder-style methods on LPAffExpr should be strongly preferred.
  */
 // TODO yadda yadda generic ints cpsat
-context(BindCtx)
-class LP_BND(private val expr: LPAffExpr<*>, val lb: Number?, val ub: Number?) : LPConstraint() {
+class LP_BND
+private constructor(
+    node: LPNode,
+    private val expr: LPAffExpr<*>,
+    val lb: Number?,
+    val ub: Number?
+) : LPConstraint(node) {
+
+    companion object {
+        context(BindCtx)
+        operator fun invoke(expr: LPAffExpr<*>, lb: Number? = null, ub: Number? = null): LP_BND =
+            LP_BND(take(), expr, lb, ub)
+    }
 
     context(NodeCtx)
     override fun decompose(ctx: LPContext) {

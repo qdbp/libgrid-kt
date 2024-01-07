@@ -3,7 +3,6 @@ package kulp.aggregates
 import kulp.*
 import kulp.expressions.LPBinaryExpr
 import kulp.expressions.Zero
-import kulp.variables.LPBinary
 import mdspan.NDSlice
 import mdspan.NDSpan
 import mdspan.SumIX
@@ -33,7 +32,7 @@ private constructor(
         private fun create_var(ndix: List<Int>, mask: NDSlice?): LPBinaryExpr {
             return when {
                 mask != null && mask.contains(ndix) -> Zero
-                else -> ndix { LPBinary().lift01() }
+                else -> ndix.new_binary().lift01()
             }
         }
 

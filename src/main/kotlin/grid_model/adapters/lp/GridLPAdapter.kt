@@ -3,11 +3,12 @@ package grid_model.adapters.lp
 import boolean_algebra.*
 import grid_model.*
 import grid_model.adapters.lp.ril_compile.GridPredicateRILCompiler.Companion.ril_compile
-import grid_model.dimension.Dim
+import grid_model.geom.Dim
+import grid_model.plane.Plane
+import grid_model.tiles.Tile
 import kulp.*
 import kulp.aggregates.LPOneOfN
 import kulp.expressions.IntAffExpr
-import kulp.expressions.LPBinaryExpr
 import kulp.expressions.Zero
 import kulp.ril.RIL
 import kulp.variables.LPBinary
@@ -20,7 +21,7 @@ import kulp.variables.LPBinary
 //  adapter that has: - entities - predicates - boundary conditions - objective - masks
 class GridLPAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
 
-    val lp_prob: LPProblem by lazy {
+    val lp_prob: GridLPProblem by lazy {
         object : GridLPProblem() {
 
             override val parent: GridProblem<*> = gp
@@ -61,18 +62,26 @@ class GridLPAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
     context(NodeCtx)
     private fun lp_set_up_entities(): LPEntityChart {
         // entities are not mutually exclusive, so we add a free LPBinary for each (entity, ix)
-        val chart_map = mutableMapOf<List<Int>, MutableMap<Entity<*>, LPBinaryExpr>>()
+        val chart_map = mutableMapOf<List<Int>, MutableMap<Entity<*>, LPChartEntry>>()
         for (entity in gp.entities) {
-            for (ndix in gp.bounds) {
-                val evar =
+            for (vec_ix in gp.bounds) {
+                chart_map.getOrPut(vec_ix) { mutableMapOf() }[entity] =
                     when {
-                        gp.is_masked(ndix, entity) -> Zero
-                        else -> "${entity.name}_${ndix.lp_name}" { LPBinary().lift01() }
+                        gp.is_masked(vec_ix, entity) -> Masked
+                        else -> VarCell("${entity.name}_${vec_ix.lp_name}".new_binary().lift01())
                     }
-                chart_map.getOrPut(ndix) { mutableMapOf() }[entity] = evar
             }
         }
-        return LPEntityChart { ndix, entity -> chart_map[ndix]!![entity]!! }
+        return LPEntityChart { ndix, entity ->
+            when (val emap = chart_map[ndix]) {
+                // there are no configurable boundary conditions for entities; out of bounds is
+                // always just [Masked]
+                null -> Masked
+                // TODO should warn if we're hitting a null here, that means we forgot to declare
+                //  and entity... that or we should go back, add the entity to the base map and retry
+                else -> emap[entity] ?: Masked
+            }
+        }
     }
 
     /** Sets up the fundamental backing LP variables of the problem */
@@ -81,7 +90,7 @@ class GridLPAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
 
         // this is the "base map" of in-bounds tiles, which we will then extend with boundary
         // conditions
-        val base_map: MutableMap<Pair<List<Int>, Tile>, LPBinaryExpr> = mutableMapOf()
+        val base_map: MutableMap<Triple<List<Int>, Plane, Tile>, LPChartEntry> = mutableMapOf()
 
         for (plane in gp.index.all_planes()) {
             val tiles = gp.index.tiles_of(plane)
@@ -90,34 +99,62 @@ class GridLPAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
             val one_of_n = "tile_${plane}" {
                 // constrained along last dim by default
                 LPOneOfN(
-                    gp.shape + (tiles.size + 1),
+                    gp.arena + (tiles.size + 1),
                     mask =
                         gp.plane_mask(plane).points.flatMap { tiles.indices.map { tx -> it + tx } }
                 )
             }
+            // TODO we do some "double wrapping" here, first to LPBinaryExpr, then to VarCell...
+            //  these serve somewhat different purposes, but it's still a bit ceremonious
             // note: no + 1 here, since we do not add the "no tile" binary option to the chart
-            for (ndix in gp.bounds) {
+            for (vec_ix in gp.bounds) {
+                val ix_is_masked = gp.is_masked(vec_ix, plane)
                 for (tx in tiles.indices) {
                     val tile = tiles[tx]
-                    base_map[ndix to tile] = one_of_n[ndix + tx]
+                    base_map[Triple(vec_ix, plane, tile)] =
+                        when (ix_is_masked) {
+                            true -> Masked
+                            else -> VarCell(one_of_n[vec_ix + tx])
+                        }
                 }
             }
         }
 
-        return LPTileChart { ndix, p, t ->
-            val bcs = gp.boundary_conditions(p)
-            val reduced_ndix = mutableListOf<Int>()
-            for (dx in ndix.indices) {
-                val dim_ix = ndix[dx]
-                when {
-                    // in range -> add to reduced_ndix
-                    dim_ix in 0 ..< gp.shape[dx] -> reduced_ndix.add(dim_ix)
-                    // out of range -> apply boundary conditions
-                    bcs[dx] is HardStop -> return@LPTileChart Zero
-                    bcs[dx] is Wrap -> reduced_ndix.add(dx % gp.shape[dim_ix])
+        return object : LPTileChart {
+
+            private val free_var_root: LPNode =
+                root.branch("free_vars") { root /* this is the branched root. */ }
+
+            private val free_var_map: MutableMap<Triple<List<Int>, Plane, Tile>, VarCell> =
+                mutableMapOf()
+
+            override fun get(vec_ix: List<Int>, plane: Plane, tile: Tile): LPChartEntry {
+                val bcs = gp.get_boundary_condition(plane)
+                val reduced_ndix = mutableListOf<Int>()
+                for (dx in vec_ix.indices) {
+                    val dim_ix = vec_ix[dx]
+                    if (dim_ix in 0 ..< gp.arena[dx]) {
+                        reduced_ndix.add(dim_ix)
+                        continue
+                    }
+                    when (bcs[dx]) {
+                        // in range -> add to reduced_ndix
+                        // out of range -> apply boundary conditions
+                        AsMasked -> return Masked
+                        HardStop -> return VarCell(Zero)
+                        Free -> get_free_var(vec_ix, plane, tile)
+                        Wrap -> reduced_ndix.add(dx % gp.arena[dim_ix])
+                    }
+                }
+                return base_map[Triple(reduced_ndix, plane, tile)]!!
+            }
+
+            private fun get_free_var(vec_ix: List<Int>, plane: Plane, tile: Tile) {
+                free_var_map.getOrPut(Triple(vec_ix, plane, tile)) {
+                    val free_name = "${plane.nice_name}_${tile.tile_name()}${vec_ix.lp_name}"
+                    VarCell(free_var_root.bind(free_name) { LPBinary() }.lift01())
                 }
             }
-            base_map[reduced_ndix to t]!!
         }
         // todo might be worth memoizing this lambda, add a generic 'memo' extension on func types
     }
@@ -142,7 +179,7 @@ class GridLPAdapter<D : Dim<D>>(val gp: GridProblem<D>) {
      * Leaves are handled by dispatch to the predicate compiler.
      */
     context(NodeCtx, GridLPChart)
-    private fun ril_compile_algebra(predicate_algebra: BEGP): LPAffExpr<Int> {
+    private fun ril_compile_algebra(predicate_algebra: BEGP<*>): LPAffExpr<Int> {
         return when (val pa = predicate_algebra) {
             is True -> IntAffExpr(1)
             is False -> IntAffExpr(0)

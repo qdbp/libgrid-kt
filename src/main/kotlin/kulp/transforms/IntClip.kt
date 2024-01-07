@@ -4,7 +4,6 @@ import ivory.interval.ClosedInterval
 import kulp.*
 import kulp.expressions.IntConstExpr
 import kulp.expressions.gt
-import kulp.variables.LPBinary
 import kulp.variables.LPVar
 
 /**
@@ -108,8 +107,8 @@ private constructor(
     // we make our binding variables public for testing and for conditioning on
     // note: we choose the convention that we are bound at x == ub/lb
     // this way z == 1 <=> x == bound, and this can be used as an implicit test for equality
-    val z_lb = clip_lb?.let { "z_lb"(::LPBinary) }
-    val z_ub = clip_ub?.let { "z_ub"(::LPBinary) }
+    val z_lb = clip_lb?.let { "z_lb".new_binary() }
+    val z_ub = clip_ub?.let { "z_ub".new_binary() }
 
     context(NodeCtx)
     override fun decompose(ctx: LPContext) {

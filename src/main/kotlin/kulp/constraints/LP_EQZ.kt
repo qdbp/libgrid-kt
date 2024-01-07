@@ -1,7 +1,6 @@
 package kulp.constraints
 
 import kulp.*
-import kulp.BindCtx
 
 // // TODO may want to parameterize for CP-SAT to force all-int constraints
 // //  for now we project+relax
@@ -10,8 +9,12 @@ import kulp.BindCtx
  *
  * In reality, depend on LP_LEZ for everything.
  */
-context(BindCtx)
-class LP_EQZ(val lhs: LPAffExpr<*>) : LPConstraint() {
+class LP_EQZ private constructor(node: LPNode, val lhs: LPAffExpr<*>) : LPConstraint(node) {
+
+    companion object {
+        context(BindCtx)
+        operator fun invoke(lhs: LPAffExpr<*>) = LP_EQZ(take(), lhs)
+    }
 
     context(NodeCtx)
     override fun decompose(ctx: LPContext) {
